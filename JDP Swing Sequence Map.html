@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>JDP Swing Sequence Map</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --green-dark:#1a5c2a;--green-mid:#2d8a4a;--green-light:#4caf70;
+  --green-pale:#e8f5e9;--green-bg:#f0f7f0;--green-border:#c8e6c9;
+  --text-dark:#1a2e1a;--text-mid:#2d4a2d;--text-light:#5a7a5a;--white:#fff;
+  --header-h:56px;--stage-h:52px;--radius:10px;
+}
+html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:15px;background:var(--green-bg);color:var(--text-dark);-webkit-font-smoothing:antialiased}
+#header{position:fixed;top:0;left:0;right:0;height:var(--header-h);background:var(--green-dark);display:flex;align-items:center;padding:0 8px;gap:4px;z-index:200;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+#back-btn{display:none;background:none;border:none;color:#fff;width:44px;height:44px;align-items:center;justify-content:center;cursor:pointer;border-radius:8px;font-size:22px}
+#back-btn.visible{display:flex}
+#header-title{flex:1;color:#fff;font-size:16px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 4px}
+#stage-nav{position:fixed;top:var(--header-h);left:0;right:0;height:var(--stage-h);background:var(--green-dark);display:flex;overflow-x:auto;z-index:199;box-shadow:0 3px 8px rgba(0,0,0,.2)}
+#stage-nav.hidden{display:none}
+.stage-tab{flex-shrink:0;padding:0 16px;height:100%;display:flex;align-items:center;background:none;border:none;color:rgba(255,255,255,.6);font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;border-bottom:3px solid transparent}
+.stage-tab.active{color:#fff;border-bottom-color:var(--green-light)}
+#main{padding-top:calc(var(--header-h) + var(--stage-h));min-height:100vh}
+#main.no-stage{padding-top:var(--header-h)}
+.view{display:none}
+.view.active{display:block}
+.page-banner{background:var(--green-dark);color:#fff;padding:14px 16px 16px}
+.page-banner h2{font-size:20px;font-weight:800;margin-bottom:4px}
+.page-banner p{font-size:13px;opacity:.8;line-height:1.5}
+.fault-list{padding:12px;display:flex;flex-direction:column;gap:7px}
+.fault-card{background:#fff;border-radius:var(--radius);padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;border:1px solid var(--green-border);min-height:56px}
+.fault-card:active{transform:scale(.98)}
+.fault-card-name{font-size:15px;font-weight:700;color:var(--text-dark)}
+.fault-card-sub{font-size:12px;color:var(--text-light);margin-top:2px}
+.fault-card-arrow{color:var(--green-mid);font-size:16px;flex-shrink:0}
+.badge{display:inline-block;font-size:11px;font-weight:800;padding:4px 10px;border-radius:12px;background:var(--green-pale);color:var(--green-dark);letter-spacing:.3px}
+.section{padding:14px 16px;border-bottom:1px solid var(--green-border);background:#fff}
+.section-label{font-size:11px;font-weight:800;color:var(--text-light);text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px}
+.key-question{font-size:15px;font-style:italic;line-height:1.5;color:var(--text-dark)}
+.confirm-text{font-size:13.5px;line-height:1.6;color:var(--text-mid)}
+.branch-card{background:var(--green-bg);border:1px solid var(--green-border);border-radius:8px;padding:12px 14px;margin-bottom:8px}
+.branch-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;gap:8px}
+.branch-name{font-size:14px;font-weight:700;color:var(--green-dark)}
+.branch-tag{font-size:10.5px;font-weight:700;color:var(--green-mid);white-space:nowrap}
+.branch-row{font-size:12.5px;color:var(--text-mid);line-height:1.5;margin-bottom:3px}
+.branch-row b{color:var(--text-dark);font-weight:700}
+table.bf{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:4px}
+table.bf th{background:var(--green-dark);color:#fff;padding:7px 10px;text-align:left;font-weight:700}
+table.bf td{padding:6px 10px;border-bottom:1px solid var(--green-border)}
+table.bf tr:nth-child(even) td{background:var(--green-bg)}
+.tree-row{font-size:12.5px;line-height:2;color:var(--text-mid)}
+.tree-row b{color:var(--text-dark);font-weight:700}
+.chain-box{background:var(--green-pale);border-left:4px solid var(--green-mid);border-radius:0 8px 8px 0;padding:10px 13px;font-size:12.5px;line-height:1.9;color:var(--text-mid)}
+.notes-box{background:#fff8e1;border-left:4px solid #f9a825;border-radius:0 8px 8px 0;padding:10px 13px;font-size:12.5px;line-height:1.6;color:var(--text-mid)}
+.placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:50vh;padding:40px 28px;text-align:center;gap:10px;color:var(--text-light)}
+</style>
+</head>
+<body>
+
+<header id="header">
+  <button id="back-btn" onclick="goBack()">&#8592;</button>
+  <h1 id="header-title">JDP Swing Sequence Map</h1>
+</header>
+
+<nav id="stage-nav"></nav>
+
+<main id="main">
+  <div id="view-list" class="view active">
+    <div class="page-banner">
+      <h2 id="stage-title">Setup</h2>
+      <p id="stage-desc">Faults present before the club moves.</p>
+    </div>
+    <div class="fault-list" id="fault-list-container"></div>
+  </div>
+
+  <div id="view-detail" class="view"></div>
+</main>
+
+<script>
+const STAGES = [
+  {id:'setup',label:'Setup',desc:'Faults present before the club moves.'},
+  {id:'backswing',label:'Backswing',desc:'Faults that first appear during the takeaway and backswing.'},
+  {id:'transition',label:'Transition',desc:'The tier 1 dynamic assessments — pressure shift and sequencing sit ahead of almost every downstream fault.'},
+  {id:'delivery',label:'Delivery',desc:'Faults in how the club is delivered from transition into impact.'},
+  {id:'impact',label:'Impact',desc:'Compensations visible at and immediately after impact.'},
+  {id:'outcomes',label:'Outcomes',desc:'Where every upstream fault tree converges — the result layer, not a starting diagnosis.'}
+];
+
+const FAULTS = [
+
+{id:'c-posture',name:'C posture',stage:'setup',
+ classification:'Primary setup fault',
+ keyQuestion:"Why can't the golfer set up with a neutral spine and rotate around it?",
+ confirm:'Rounded upper back, posterior pelvic tilt, chin close to chest, shoulders rounded forward, minimal lumbar curve, weight towards the toes, arms hanging excessively underneath the shoulders. 3+ signs confirms.',
+ branches:[
+  {name:'Poor hip hinge pattern',tag:'Most common',signs:'Bends through the spine instead of the hips, knees over-flexed, chest collapsed.',why:"They don't know how to hinge from the hips while maintaining a neutral spine.",screen:'Hip hinge dowel test, toe touch, bodyweight squat.',fix:'Hip hinge drill, wall hinge drill, dowel along the spine, mirror setup.',physical:'RDL pattern, goblet squat, hip hinge practice, good mornings.'},
+  {name:'Limited thoracic extension',tag:'Common',signs:'Rounded shoulders, head forward, flat shoulder turn, limited shoulder elevation.',why:'Without thoracic extension, posture remains flexed.',screen:'Wall angel, thoracic extension over a foam roller, shoulder flexion.',fix:'Chest proud (not overextended), sternum tall, shoulder blade set.',physical:'Foam roller thoracic extensions, wall slides, prone Y-T-W raises, band pull-aparts.'},
+  {name:'Tight pectorals / lats',signs:'Rounded shoulders, arms internally rotated, limited shoulder motion.',why:'Anterior tightness pulls the shoulders forward.',screen:'Apley scratch, shoulder flexion, pec length test.',fix:'Neutral shoulder position, wider arm hang.',physical:'Doorway pec stretch, lat stretch, wall slides, sleeper stretch.'},
+  {name:'Weak posterior chain',signs:'Poor posture endurance, back rounds during swing, early fatigue.',why:'The glutes and spinal extensors cannot maintain posture.',screen:'Sorensen hold, single-leg RDL, hip bridge.',fix:'Maintain chest height, hip hinge rehearsals.',physical:'Glute bridges, hip thrusts, Romanian deadlifts, back extensions.'},
+  {name:'Poor scapular control',signs:'Shoulder blades wing or protract, arms disconnect, flat shoulder plane.',why:"The scapulae cannot support efficient arm movement.",screen:'Wall slides, scapular push-ups, serratus punch.',fix:'Shoulder blade awareness, arm hang drill, connection drill.',physical:'Serratus wall slides, face pulls, band pull-aparts, Y-T-W raises.'},
+  {name:'Poor core control',signs:'Rounded trunk, unable to maintain posture dynamically, spine collapses in transition.',why:'The trunk lacks enough endurance to stabilize the spine.',screen:'Dead bug, side plank, bird dog, Pallof press.',fix:'Neutral brace at address, slow-motion swings.',physical:'Dead bugs, Pallof press, farmer carries, side planks.'},
+  {name:'Lifestyle / occupational posture',signs:'Desk work, phone posture, chronic rounded shoulders.',why:'Daily posture influences golf setup.',screen:'Observation and posture assessment.',fix:'Mirror setup, frequent posture resets, standing practice.',physical:'Thoracic mobility routine, walking, band pull-aparts, daily extension exercises.'}
+ ],
+ ballFlight:[['Pull fade','Limited rotation → OTT'],['Slice','Steep transition'],['Thin','Loss of posture'],['Heel strike','Arms move away from the body'],['Weak contact','Poor rotation'],['Short distance','Reduced speed and sequencing']],
+ decisionTree:[['Hip hinge correct?','No → Hip hinge training'],['Thoracic extension adequate?','No → Improve T-spine'],['Pecs / lats tight?','Yes → Mobility program'],['Posterior chain strong?','No → Strength program'],['Scapular control?','Poor → Shoulder stability'],['Core endurance?','Poor → Core program'],['Lifestyle posture contributing?','Yes → Daily mobility & posture habits']],
+ chain:'C-Posture → Limited Thoracic Extension → Flat Shoulder Plane → Poor Pelvic & Thoracic Separation → Over-the-Top → Steep Delivery → Early Extension or Chicken Wing → Weak Strike / Slice',
+ notes:"C-Posture creates too much flexion (opposite of S-Posture's too much extension). Flexion-biased golfers tend toward restricted rotation, over-the-top, and steep delivery."},
+
+{id:'s-posture',name:'S posture',stage:'setup',
+ classification:'Primary setup fault',
+ keyQuestion:'Why is the golfer unable to find and maintain a neutral pelvis and spine?',
+ confirm:'Excessive lower back arch, pelvis tipped forward (anterior pelvic tilt), belt buckle points down toward the ball, ribs flare upward, glutes appear stuck out, abdomen relaxed rather than braced, difficulty maintaining posture during practice swings. 3+ signs confirms.',
+ branches:[
+  {name:'Poor pelvic awareness',tag:'Most common',signs:'Unable to move between anterior and posterior pelvic tilt, always stands in excessive lordosis, cannot find neutral.',why:'The golfer simply lacks awareness of pelvic position.',screen:'Standing pelvic tilt test, quadruped pelvic tilt, wall posture assessment.',fix:'Neutral pelvis rehearsal, belt buckle slightly toward chin, "zip up your ribs", mirror setup practice.',physical:'Dead bugs, pelvic tilts, bird dogs, breathing drills.'},
+  {name:'Tight hip flexors',tag:'Common',signs:'Pelvis pulled into anterior tilt, limited hip extension, lower back discomfort after golf.',why:'Short hip flexors maintain an anterior pelvic tilt.',screen:'Thomas test, half-kneeling hip extension, hip extension assessment.',fix:'Neutral setup after stretching, hip hinge from neutral.',physical:'Hip flexor stretch, couch stretch, glute bridge, split-stance hip extension.'},
+  {name:'Weak glutes',signs:'Minimal glute activation, lower back dominates, difficulty maintaining posture.',why:'Weak glutes fail to stabilize the pelvis.',screen:'Single-leg bridge, glute bridge hold, single-leg squat.',fix:'Feel glutes supporting posture, hip hinge drill.',physical:'Glute bridges, hip thrusts, split squats, single-leg RDL.'},
+  {name:'Poor core stability',signs:'Rib flare, excessive lumbar extension, poor trunk control.',why:'The abdominals cannot oppose lumbar extension.',screen:'Dead bug, side plank, front plank, Pallof press.',fix:'Brace before setup, rib cage over pelvis, breathing rehearsal.',physical:'Dead bugs, Pallof press, carries, side planks.'},
+  {name:'Limited hamstring mobility',signs:'Difficulty hip hinging, compensatory lumbar extension, knees over-flexed.',why:'The golfer extends the spine to compensate for poor hip motion.',screen:'Toe touch, straight-leg raise, active hamstring test.',fix:'Hip hinge drill, soft knee setup, mirror work.',physical:'Hamstring mobility, RDL pattern, dynamic leg swings.'},
+  {name:'Poor breathing pattern',signs:'Chest breathing, rib flare, difficulty maintaining abdominal pressure.',why:'Poor diaphragmatic control contributes to excessive lumbar extension.',screen:'90/90 breathing, crocodile breathing, rib expansion assessment.',fix:'Exhale into setup, stack ribs over pelvis, light abdominal brace.',physical:'90/90 breathing, balloon breathing, diaphragmatic breathing drills.'},
+  {name:'Poor setup instruction',signs:'Excessive "stick your bum out", chest overextended, hyper-athletic posture.',why:'The golfer has been coached into an exaggerated setup.',screen:'None required.',fix:'Neutral athletic posture, hip hinge without lumbar extension, mirror and video feedback.',physical:'None required.'}
+ ],
+ ballFlight:[['Push','Early extension compensation'],['Hook','Loss of posture then flip'],['Thin','Standing up through impact'],['Heel strike','Pelvis moves toward the ball'],['Fat','Poor low-point control'],['Inconsistent strike','Dynamic posture breakdown']],
+ decisionTree:[['Neutral pelvis available?','No → Pelvic awareness'],['Hip flexors tight?','Yes → Restore hip extension'],['Glutes strong?','No → Glute strengthening'],['Core stable?','No → Anti-extension program'],['Hamstrings mobile?','No → Improve hinge mobility'],['Breathing efficient?','No → Diaphragm training'],['Setup over-coached?','Yes → Rebuild address posture']],
+ chain:'S-Posture → Poor Hip Hinge → Loss of Dynamic Posture → Early Extension → Club Stuck at P6 → Casting / Chicken Wing → Thin & Heel Contact',
+ notes:'Extension-biased golfers (often S-Posture) tend toward early extension, hanging back, and getting the club stuck. Score setup on four checkpoints before diagnosing dynamic faults: pelvis, spine, hip hinge, rib-pelvis relationship.'},
+
+{id:'grip',name:'Grip — weak and strong',stage:'setup',
+ classification:'Foundational variable — not a primary or secondary fault by default',
+ keyQuestion:"Is the grip compatible with the golfer's body motion and clubface delivery? Not: is it strong or weak?",
+ confirm:'Weak: clubface consistently open at P6/P7, weak fades or slices, excessive lead wrist extension, difficulty squaring the face, high spin weak ball flight. Strong: clubface shuts early, hooks, pull hooks, excessive shaft lean, clubface closes rapidly.',
+ branches:[
+  {name:'[Weak] Poor clubface control',tag:'Most common',signs:'Face open halfway down, lead wrist extends, weak release.',why:'The grip limits the ability to square the face.',screen:'Clubface at P6, lead wrist position, grip check.',fix:'Strengthen grip slightly, motorcycle drill, punch shots, lead wrist flexion.',physical:'Usually none.'},
+  {name:'[Weak] Poor forearm rotation',signs:'Little forearm rotation, passive release, chicken wing.',why:'Player lacks forearm mobility or awareness.',screen:'Pronation, supination, wrist mobility.',fix:'Grip-neutral rehearsal.',physical:'Rice bucket, hammer rotations, wrist mobility.'},
+  {name:'[Weak] Open face from pivot',signs:'Chest stalls, face remains open, OTT develops.',why:"The grip isn't the problem — poor pivot leaves the face open.",screen:'Pivot and sequencing assessment.',fix:'Pressure shift, pivot drills, sequencing.',physical:'None required.'},
+  {name:'[Weak] Incorrect grip education',signs:'Grip changes every lesson, never consistent.',why:'Player has no repeatable grip.',screen:'None required.',fix:'Grip routine, daily rehearsals.',physical:'None required.'},
+  {name:'[Strong] Clubface too closed',tag:'Most common',signs:'Hooks, low left, pull hooks.',why:'Grip overwhelms body rotation.',screen:'Clubface at impact.',fix:'Neutralize grip, face awareness, hold-off drill.',physical:'None required.'},
+  {name:'[Strong] Poor body rotation',signs:'Hands dominate, chest stalls, flip release.',why:"Strong grip isn't the issue — body stopped rotating.",screen:'Pelvic and thoracic rotation.',fix:'Rotation drills, step drill, medicine ball.',physical:'None required.'},
+  {name:'[Strong] Excessive forearm roll',signs:'Rapid toe closure, hooks, timing inconsistent.',why:'Uncontrolled release timing.',screen:'Forearm rotation assessment.',fix:'Hold-off finish, split grip, lead wrist control.',physical:'None required.'},
+  {name:'[Strong] Poor match-up',signs:'Very strong grip, very active release, little rotation.',why:'Bad match-up, not a bad grip.',screen:'Grip / pivot / release compatibility.',fix:'Rebuild the pattern, not the grip.',physical:'None required.'}
+ ],
+ ballFlight:[['Slice (weak)','Open face'],['Pull fade (weak)','OTT + open face'],['Weak fade (weak)','Poor release'],['High spin (weak)','Dynamic loft'],['Hook (strong)','Closed face'],['Pull hook (strong)','Closed face + OTT'],['Push hook (strong)','Inside path + closed face'],['Low bullets (strong)','Strong grip + shaft lean']],
+ decisionTree:[['Weak — clubface open?','Yes → Grip / wrist'],['Weak — wrist mobility poor?','Yes → Mobility'],['Weak — pivot poor?','Yes → Pivot first'],['Weak — grip inconsistent?','Yes → Routine'],['Strong — face closed?','Yes → Neutralise grip'],['Strong — body rotate?','No → Improve pivot'],['Strong — forearm roll excessive?','Yes → Release drills'],['Strong — match-up poor?','Yes → Rebuild pattern']],
+ chain:'Grip match-up assessment (not a compensation chain): 1. Is the clubface consistently delivered where the player intends? 2. Does the grip complement the pivot, wrist mechanics and release pattern? 3. Would changing the grip simplify the motion or create new compensations? If all three are positive, leave the grip alone.',
+ notes:"Ben Hogan (weak grip) and Paul Azinger (strong grip) both played world-class golf because their body motion matched their grip. Grip/motion matrix: weak+good pivot=can work well; weak+poor pivot=face stays open; strong+great rotation=powerful and stable; strong+poor rotation=hooks and timing issues."},
+
+{id:'sway',name:'Sway',stage:'backswing',
+ classification:'Primary technical fault (backswing)',
+ keyQuestion:'Why did the golfer feel the need to move laterally in the backswing instead of rotating?',
+ confirm:'At P4: pelvis moves more than 5-8cm toward the trail side, head moves excessively right, trail hip fails to deepen, trail knee drifts laterally, pressure moves outside the trail foot, minimal pelvic rotation. 3+ occurring continues the tree.',
+ branches:[
+  {name:'Poor pelvic rotation',tag:'Most common',signs:'Trail hip does not move behind the player, pelvis turns less than 35°, hips slide instead of rotate.',why:"If the golfer can't rotate, they create backswing length by sliding.",screen:'Pelvic rotation, hip turn assessment, mirror turn test.',fix:'Chair drill, right glute back, belt buckle rotation, alignment stick through belt loops.',physical:'Hip airplanes, 90/90 rotations, split stance rotations, medicine-ball rotational throws.'},
+  {name:'Limited trail hip internal rotation',signs:'Trail knee straightens, trail foot rolls, trail hip elevates.',why:"The trail hip locks — the pelvis has nowhere to rotate.",screen:'Trail hip IR: Excellent 40°, Good 30–40°, Poor 20–30°, Red <20°.',fix:'Feel trail hip behind the heel, maintain trail knee flex, chair drill.',physical:'Hip CARs, banded IR, 90/90 mobility, hip airplanes.'},
+  {name:'Poor trail leg stability',signs:'Trail knee collapses, pressure outside trail foot, balance poor.',why:'Player cannot support rotational load.',screen:'Single-leg squat, single-leg balance, Y balance.',fix:'Feet together swings, trail leg loading, slow motion swings.',physical:'Split squats, single-leg RDL, lateral hops, step-downs.'},
+  {name:'Limited thoracic rotation',signs:'Chest stops turning, pelvis slides, arms continue.',why:'Body borrows motion from sway.',screen:'Seated rotation, open books.',fix:'Cross-arm turns, shirt buttons behind ball, pause at P3.',physical:'Open books, windmills, thread the needle, med-ball rotations.'},
+  {name:'Incorrect loading pattern',signs:'Player actively shifts, weight outside trail foot, reverse move later.',why:'Player thinks "load" means "move" (usually technical rather than physical).',screen:'Observation of loading pattern.',fix:'Pressure into inside trail heel, trail hip behind, pressure mat feedback.',physical:'Usually none required.'}
+ ],
+ ballFlight:[['Fat','Reverse shift'],['Thin',"Can't recenter"],['Push','Stuck behind'],['Hook','Slide then flip'],['Pull','Upper body recovery']],
+ decisionTree:[['Pelvis rotate?','No → Pelvic mobility'],['Trail hip IR?','Poor → Hip mobility'],['Trail leg stable?','No → Single-leg strength'],['Thoracic rotate?','No → T-spine mobility'],['Incorrect loading?','Yes → Pressure drills']],
+ chain:'Poor Hip Mobility / Stability → Excessive Backswing Sway → Reverse Spine Angle → Poor Pressure Shift → Downswing Slide → Club Stuck at P6 → Early Extension → Flip Release → Poor Contact & Inconsistent Ball Flight'},
+
+{id:'flat-shoulder-plane',name:'Flat shoulder plane',stage:'backswing',
+ classification:'Primary technical fault',
+ keyQuestion:"Why couldn't the lead shoulder work down and around?",
+ confirm:'At P3-P4: lead shoulder stays level instead of moving down, trail shoulder does not move behind the player, shoulder turn appears almost horizontal, hands travel excessively around the body, club becomes very deep, head raises during backswing. 3+ signs confirms.',
+ branches:[
+  {name:'Poor address posture',tag:'Most common',signs:'Standing too upright, minimal hip hinge, rounded shoulders, chest already vertical.',why:'A vertical posture encourages a flat shoulder turn.',screen:'Hip hinge assessment, toe touch, overhead squat.',fix:'Athletic setup, chest over the balls of the feet, hip hinge rehearsals, mirror posture.',physical:'RDL pattern, hip hinge drill, goblet squat, hamstring mobility.'},
+  {name:'Limited thoracic rotation',tag:'Common',signs:'Chest stops turning, arms continue around, trail shoulder does not get behind.',why:'Without thoracic rotation, the golfer rotates flatter around the spine.',screen:'Seated rotation, open books, thread the needle.',fix:'Cross-arm turns, shirt buttons behind the ball, pause at P2.',physical:'Open books, quadruped rotations, windmills, medicine-ball rotations.'},
+  {name:'Poor side bend pattern',signs:'Little lead-side bend, head rises, shoulders remain level.',why:'The player rotates but never adds the appropriate amount of side bend.',screen:'Standing side bend, rib cage mobility, thoracic extension.',fix:'Lead shoulder to the ball, trail shoulder behind the head, wall shoulder drill.',physical:'Side bends, half-kneeling reaches, rib mobility, thoracic extension over a foam roller.'},
+  {name:'Excessive arm depth',signs:'Hands behind the trail shoulder, club laid off or very deep, trail elbow disappears behind the body.',why:'The arms keep travelling around after the torso has finished rotating.',screen:'Mostly technical.',fix:'Early arm lift, hands in front of chest, split-hand drill, mirror work.',physical:'Usually minimal.'},
+  {name:'Limited trail hip rotation',signs:'Trail hip stalls, pelvis stops turning, upper body compensates by flattening.',why:'The body seeks backswing length from the shoulders instead of the hips.',screen:'Trail hip internal rotation, pelvic rotation, hip airplanes.',fix:'Right glute behind, chair drill, belt buckle rotation.',physical:'Hip IR, 90/90 mobility, hip airplanes, split stance rotations.'},
+  {name:'Poor scapular control',tag:'Stability root — mobility work will not fix this',signs:'Elevated shoulders, arms disconnect, trail shoulder shrugs.',why:'The shoulder girdle does not move efficiently around the rib cage — scapular stabilisers cannot hold the shoulder girdle in address position through the early takeaway, so the trail arm drifts independently of the thoracic spine.',screen:'Wall slides, shoulder flexion, scapular push-ups.',fix:'Wall slide drill, connection drill, slow rehearsals.',physical:'Face pulls, band pull-aparts, Y-T-W raises, serratus wall slides.'},
+  {name:'Incorrect backswing intent',signs:'"Turn flat", "sweep it inside", club immediately behind the hands.',why:'The golfer has learned an incorrect movement pattern rather than having a physical limitation.',screen:'None required.',fix:'Lead shoulder down and across, club outside the hands to P2, mirror rehearsals, split-hand takeaway.',physical:'Usually no physical intervention required.'}
+ ],
+ ballFlight:[['Push','Deep delivery'],['Push-draw','Club trapped'],['Hook','Excessively inside path'],['Block','Hands stuck behind'],['Fat','Poor low point'],['Thin','Early extension compensation']],
+ decisionTree:[['Address posture athletic?','No → Rebuild setup'],['Thoracic rotation adequate?','No → Improve T-spine'],['Side bend available?','No → Improve rib/thoracic mobility'],['Arms too deep?','Yes → Arm structure drills'],['Trail hip rotate?','No → Hip mobility'],['Scapular control?','Poor → Shoulder stability'],['Poor backswing concept?','Yes → Technical rebuild']],
+ chain:'Poor Setup / Limited T-Spine → Flat Shoulder Plane → Flat Arm Plane → Deep Hands → Club Behind at P6 → Early Extension → Flip or Block',
+ notes:'Distinguish movement constraints (physical: limited thoracic rotation, poor hip rotation, restricted side bend, poor scapular control) from movement strategies (technical: upright setup, excessive arm depth, incorrect backswing concept) — decides whether the fix belongs in the gym or the lesson.'},
+
+{id:'flying-elbow',name:'Flying elbow',stage:'backswing',
+ classification:'Conditional fault — not automatically a fault',
+ keyQuestion:'Is the flying elbow creating compensations? (Not: is the elbow flying?)',
+ confirm:'At P3-P4: trail elbow separates significantly from the rib cage, upper trail arm abducts well above shoulder level, hands become disconnected from the torso, club becomes very upright, shaft points across the line or laid off due to compensation. Only continue if it affects delivery.',
+ branches:[
+  {name:'Poor trail shoulder mobility',tag:'Most common physical cause',signs:'Trail shoulder elevates, difficulty externally rotating, elbow lifts to create room.',why:'The shoulder cannot rotate efficiently, so the elbow elevates.',screen:'Shoulder flexion, external rotation, Apley scratch test.',fix:'Trail elbow under, wall backswing drill, half swings.',physical:'Band external rotations, wall slides, face pulls, sleeper stretch where appropriate.'},
+  {name:'Poor arm structure',signs:'Arms disconnect early, hands very high, club above the shoulder plane.',why:'The golfer lifts the arms instead of rotating the torso.',screen:'Mostly technical.',fix:'Towel under trail arm, connection drill, split-hand backswing, mirror rehearsal.',physical:'Minimal.'},
+  {name:'Limited thoracic rotation',signs:'Chest stops turning, arms continue upward, elbow flies late.',why:'The golfer creates additional backswing length with the arms.',screen:'Seated thoracic rotation, open books, thread the needle.',fix:'Cross-arm turns, shirt buttons behind the ball, pause at P3.',physical:'Open books, windmills, quadruped rotations, thoracic extensions.'},
+  {name:'Poor pelvic rotation',signs:'Hip turn limited, upper body dominates, arms overrun the body.',why:'The golfer seeks backswing length from the arms.',screen:'Pelvic rotation, hip IR, hip airplanes.',fix:'Chair drill, trail hip back, belt buckle turn.',physical:'Hip airplanes, 90/90 mobility, split-stance rotations.'},
+  {name:'Overswing',signs:'Hands past the head, shaft past parallel, trail elbow flies late.',why:'The golfer continues moving after the body has finished turning.',screen:'Technical.',fix:'Three-quarter backswing, stop at lead arm parallel, mirror rehearsals, tempo training.',physical:'None required.'},
+  {name:'Grip too strong or too weak',signs:'Clubface across the line, wrist structure inconsistent, elbow compensates.',why:'Grip influences arm structure during the backswing.',screen:'None.',fix:'Grip assessment, wrist set rehearsal, split-hand takeaway.',physical:'None required.'},
+  {name:'Intent to create more power',signs:'Long backswing, fast arm swing, tempo inconsistent.',why:'Player believes a longer backswing creates more speed.',screen:'Technical.',fix:'80% backswing, rhythm drills, count tempo, swing-to-finish drill.',physical:'None required.'}
+ ],
+ ballFlight:[['Pull','Over-the-top recovery'],['Slice','Flying elbow + steep transition'],['Hook','Across-the-line then reroute'],['Thin','Timing inconsistency'],['Fat','Poor sequencing'],['Distance inconsistency','Variable arm structure']],
+ decisionTree:[['Shoulder mobility adequate?','No → Restore mobility'],['Arms disconnect?','Yes → Connection drills'],['Thoracic rotation adequate?','No → Improve T-spine'],['Pelvis rotate sufficiently?','No → Improve hip turn'],['Overswing?','Yes → Shorten backswing'],['Grip appropriate?','No → Grip assessment'],['Searching for power?','Yes → Tempo & length']],
+ chain:'Poor Shoulder / Thoracic Mobility → Flying Trail Elbow → Overswing → Across-the-Line or Steep Top Position → Over-the-Top OR Club Stuck → Early Extension / Casting → Inconsistent Strike',
+ notes:'Green (functional, leave alone) — trail elbow lifts modestly, club returns consistently, good strike quality. Amber (monitor) — noticeable elbow flight, minor inconsistency under pressure. Red (intervene) — significant separation, overswing, across-the-line, OTT or trapped delivery, loss of strike consistency.'},
+
+{id:'reverse-pivot',name:'Reverse pivot',stage:'backswing',
+ classification:'Primary fault — a pressure and mass movement fault throughout the swing, distinct from Reverse Spine Angle (a postural fault at the top)',
+ keyQuestion:'Why did the golfer avoid loading pressure into the trail side?',
+ confirm:'Backswing (P2-P4): pressure moves toward the lead foot, head drifts toward the target, trail leg fails to load, lead hip elevates, little pressure develops into the trail heel. Downswing: pressure shifts back toward the trail foot, finish hangs back, poor balance, low point behind the ball. 3+ signs confirms.',
+ branches:[
+  {name:'Poor understanding of pressure shift',tag:'Most common',signs:'Golfer intentionally "keeps weight left", never loads the trail side, reverse weight transfer.',why:'This is a movement strategy, not a physical limitation — many players have simply been taught incorrectly.',screen:'Pressure mat if available; otherwise feet together swings, step drill.',fix:'Step drill, trail heel pressure drill, pump pressure drill, walk-through swings.',physical:'Usually none required.'},
+  {name:'Limited trail hip internal rotation',tag:'Common',signs:'Trail hip cannot accept load, trail knee straightens, pelvis stops turning.',why:'The golfer avoids loading the trail hip because it lacks mobility.',screen:'Trail hip IR: Excellent 40°, Good 30–40°, Poor 20–30°, Red <20°.',fix:'Right glute back, chair drill, load inside trail heel.',physical:'90/90 rotations, hip airplanes, hip CARs, banded IR.'},
+  {name:'Poor trail leg stability',signs:'Trail knee collapses, trail foot rolls outward, balance poor.',why:'Player cannot support pressure on the trail side.',screen:'Single-leg squat, Y balance, single-leg balance.',fix:'Feet together swings, trail leg loading drill, slow motion rehearsals.',physical:'Split squats, single-leg RDL, step-downs, lateral hops.'},
+  {name:'Reverse spine angle',signs:'Spine tilts toward target, head forward, lead shoulder excessively down.',why:'RSA often causes the centre of mass to move toward the lead side.',screen:'Hip mobility, thoracic rotation, pelvic rotation.',fix:'Centered pivot, chair drill, right glute back.',physical:'Hip mobility, thoracic mobility, core stability.'},
+  {name:'Poor pelvic rotation',signs:'Hips barely turn, upper body dominates, reverse loading.',why:'Without pelvic rotation the golfer shifts instead of turning.',screen:'Pelvic rotation, hip turn assessment.',fix:'Belt buckle rotation, alignment stick through belt loops, chair drill.',physical:'Hip airplanes, medicine-ball rotations, split stance turns.'},
+  {name:'Limited thoracic rotation',signs:'Chest stops turning, arms continue, head drifts toward target.',why:'The golfer creates backswing length through lateral movement.',screen:'Seated rotation, open books, thread the needle.',fix:'Cross-arm turns, shirt buttons behind ball, pause at P3.',physical:'Windmills, open books, thoracic extension, medicine-ball throws.'},
+  {name:'Poor lead side stability',signs:'Cannot transition effectively, pressure never leaves lead foot, finish unstable.',why:'Some golfers simply do not trust their ability to move dynamically.',screen:'Step-down, single-leg squat, lateral hop.',fix:'Step drill, dynamic balance drill, walk-through swings.',physical:'Rear-foot elevated split squats, lateral bounds, single-leg RDL.'}
+ ],
+ ballFlight:[['Fat','Low point behind ball'],['Thin','Scooping while hanging back'],['Weak fade','Poor pressure transfer'],['Push','Pressure never reaches lead side'],['Loss of distance','Poor ground force production'],['Inconsistent strike','Reverse pressure shift']],
+ decisionTree:[['Understand pressure shift?','No → Pressure drills'],['Trail hip IR adequate?','No → Hip mobility'],['Trail leg stable?','No → Single-leg strength'],['Reverse spine angle?','Yes → Pivot correction'],['Pelvis rotate?','No → Improve rotation'],['Thoracic rotation?','Poor → T-spine mobility'],['Lead side stability?','Poor → Dynamic balance']],
+ chain:'Poor Trail Hip Mobility / Poor Pressure Understanding → Reverse Pivot → Reverse Spine Angle → Poor Pressure Shift → Steep Transition → Hanging Back → Casting → Fat / Thin Contact',
+ notes:'Score pressure, mass and head motion as three independent components — a skilled player can keep the head almost centred while pressure and mass shift correctly. Coaches often lump all three under "weight shift", which hides which component is actually broken.'},
+
+{id:'reverse-spine-angle',name:'Reverse spine angle',stage:'backswing',
+ classification:'Primary fault — a postural fault at the top of the backswing (distinct from Reverse Pivot)',
+ keyQuestion:'Why did the golfer need the spine to tilt toward the target to create backswing length?',
+ confirm:'At P4 (down-the-line): upper spine tilts toward the target, head moves significantly toward the target, lead shoulder works down instead of around, trail shoulder elevates, trail hip loses depth, weight moves excessively to the outside of the trail foot. 3+ signs confirms.',
+ branches:[
+  {name:'Poor pelvic rotation',tag:'Most common',signs:'Pelvis turns less than 35–40°, trail hip loses depth, trail knee straightens excessively, upper body keeps turning after the pelvis stops.',why:'When the pelvis runs out of rotation, the golfer creates more backswing by side bending toward the target.',screen:'Pelvic rotation test, hip internal rotation (both hips), seated trunk rotation.',fix:'Trail hip back drill, alignment stick through belt loops, chair drill, right glute to the wall.',physical:'90/90 hip rotations, hip airplanes, lateral lunges, thoracic rotation mobility.'},
+  {name:'Limited trail hip internal rotation',signs:'Trail hip rises, trail knee straightens, trail heel rolls outward, pelvis stalls.',why:'Without trail hip IR, the pelvis cannot continue rotating — the spine compensates.',screen:'Trail hip IR: Excellent >40°, Good 30–40°, Poor 20–30°, Red <20°.',fix:'Trail hip back feel, chair drill, trail glute against wall.',physical:'90/90 rotations, banded hip IR, hip airplanes, CARs.'},
+  {name:'Limited thoracic rotation',signs:'Pelvis stops, chest continues, head drifts toward target.',why:'The golfer steals motion from spinal side bend.',screen:'Seated thoracic rotation, open book test, thread the needle.',fix:'Turn the shirt buttons behind the ball, cross-arm turns, mirror rehearsals.',physical:'Open books, quadruped rotations, windmills, medicine-ball rotational throws.'},
+  {name:'Poor core stability',signs:'Excessive lateral movement, loss of posture, inconsistent backswing length.',why:'The trunk cannot stabilize while rotating.',screen:'Dead bug, bird dog, side plank, Pallof press.',fix:'Slow-motion backswings, pause at P3, maintain sternum position.',physical:'Dead bugs, Pallof press, side planks, farmer carries.'},
+  {name:'Poor trail leg stability',signs:'Trail knee collapses, trail hip sways, trail foot rolls.',why:'The golfer cannot load into the trail side.',screen:'Single-leg balance, single-leg squat, step-down test.',fix:'Trail leg bracing drill, feet-together swings, step drill.',physical:'Single-leg RDL, split squats, step-ups, lateral hops.'},
+  {name:'Excessive sway',signs:'Pelvis slides instead of turning, head moves right then left, reverse spine develops late.',why:'The player confuses loading with lateral movement (mostly technical).',screen:'Mostly technical.',fix:'Head between two alignment sticks, trail hip against chair, feet together drill.',physical:'Usually minimal unless balance is poor.'},
+  {name:'Incorrect setup',signs:'Spine vertical at address, weight already on lead foot, shoulders level, hips tucked under.',why:'Poor setup forces compensation.',screen:'Static posture assessment.',fix:'Secondary spine tilt, athletic posture, proper pressure distribution.',physical:'Usually not required.'}
+ ],
+ ballFlight:[['Pull slice','Steep transition from RSA'],['High weak fade','Poor pressure shift after RSA'],['Fat shots','Reverse weight shift'],['Thin shots','Standing up to recover'],['Pull','Upper body dominates transition'],['Pull hook','Steep then flip']],
+ decisionTree:[['Pelvis rotate >40°?','No → Improve pelvic rotation'],['Trail hip IR >30°?','No → Restore hip mobility'],['Thoracic rotation symmetrical?','No → Improve T-spine mobility'],['Core stable during rotation?','No → Anti-rotation strength'],['Trail leg stable?','No → Single-leg strength'],['Excessive sway?','Yes → Turn instead of slide'],['Setup correct?','No → Rebuild address position']],
+ chain:'Reverse Spine Angle → Poor Pressure Shift → Steep Transition → Club Gets Stuck Behind at P6 → Early Extension → Flip Release → Poor Strike Consistency',
+ notes:'Coaching priority order: 1. Setup — posture, pressure, secondary spine tilt. 2. Pelvic rotation. 3. Trail hip mobility. 4. Thoracic mobility. 5. Core stability. 6. Trail leg strength and balance. 7. Swing sequencing — only once the physical and setup foundations are in place. Split faults into Primary (RSA, excessive sway, poor pelvic rotation, poor pressure shift, flat/deep backswing) versus Compensatory (early extension, club stuck, flip release, casting, OTT, loss of posture, chicken wing, fat/thin contact).'},
+
+{id:'pressure-shift',name:'Pressure shift',stage:'transition',
+ classification:'Tier 1 dynamic assessment — screen this before diagnosing most downstream faults',
+ keyQuestion:"Why can't the golfer move pressure efficiently from the trail side in the backswing to the lead side in the downswing?",
+ confirm:'Backswing (P2-P4): minimal pressure into trail heel, excessive pressure remains centred or moves into trail toes, trail leg fails to load, pelvis fails to rotate around the trail hip. Transition (P4-P6): pressure remains on the trail foot too long, late movement into the lead side, upper body starts before the lower body, no increase in lead foot ground reaction force before P6. 3+ signs confirms.',
+ branches:[
+  {name:'Poor movement pattern',tag:'Most common',signs:'Golfer has never learned how pressure should move, arms start downswing first, pressure stays on trail side.',why:'This is a motor learning issue, not a physical limitation.',screen:'Step drill, feet together swings, pressure plate if available.',fix:'Step-through drill, lead foot stomp drill, walk-through swings, pump pressure drill.',physical:'Usually none required.'},
+  {name:'Poor lead leg stability',tag:'Most common',signs:'Cannot "post up", lead knee collapses, finish unstable.',why:'Golfer avoids moving pressure because they cannot accept force on the lead leg.',screen:'Single-leg squat, step-down, Y balance, single-leg balance.',fix:'Finish holds, lead-leg posting drill, step drill.',physical:'Bulgarian split squats, single-leg RDL, lateral bounds, step-ups.'},
+  {name:'Limited trail hip internal rotation',signs:'Trail hip does not load, excessive sway, reverse pivot tendencies.',why:'The golfer cannot rotate into the trail hip effectively.',screen:'Trail Hip IR: Excellent >40°, Good 30–40°, Limited 20–30°, Severe <20°.',fix:'Trail hip back, chair drill, pressure into trail heel.',physical:'90/90 hip rotations, hip CARs, hip airplanes, banded IR mobilizations.'},
+  {name:'Limited lead hip internal rotation',signs:'Pressure reaches the lead side late, early extension, poor lead-side rotation.',why:'The lead hip cannot rotate while accepting pressure.',screen:'Lead Hip IR assessment.',fix:'Lead pocket back, step drill, rotation through finish.',physical:'Hip IR mobilizations, hip airplanes, split squats, Copenhagen planks (progression).'},
+  {name:'Poor thoracic rotation',signs:'Arms dominate backswing, chest stalls, pressure remains static.',why:'Without trunk rotation, efficient pressure movement is difficult.',screen:'Seated thoracic rotation, open books, thread the needle.',fix:'Cross-arm turns, shirt buttons behind the ball, rotation rehearsals.',physical:'Open books, windmills, thoracic extensions, medicine-ball rotational throws.'},
+  {name:'Poor balance / proprioception',signs:'Feet move during swing, finish inconsistent, difficulty shifting dynamically.',why:'The nervous system prioritizes balance over force production.',screen:'Tandem balance, single-leg stance, Y balance.',fix:'Feet together swings, slow-motion swings, finish holds.',physical:'Farmer carries, balance reaches, lateral hops.'},
+  {name:'Poor sequencing',signs:'Arms fire first, pelvis stalls, pressure arrives too late.',why:'The golfer has the capacity to shift pressure but sequences it incorrectly.',screen:'Medicine-ball throw, step-and-throw pattern.',fix:'Pause transition, three-pump drill, step drill, medicine-ball throws.',physical:'Rotational power training, cable lifts, Pallof press.'}
+ ],
+ ballFlight:[['Fat','Pressure stays back'],['Thin','Late pressure + early extension'],['Push','Pressure never reaches lead side'],['Slice','Upper body dominates transition'],['Hook','Pressure gets stuck then flips'],['Loss of distance','Poor ground force utilization']],
+ decisionTree:[['Learned movement pattern?','No → Pressure drills'],['Lead leg stable?','No → Single-leg strength'],['Trail hip loads?','No → Trail hip mobility'],['Lead hip rotates?','No → Lead hip mobility'],['Thoracic rotation adequate?','No → Improve T-spine'],['Balance sufficient?','No → Stability training'],['Sequencing correct?','No → Transition drills']],
+ chain:'Setup Quality → Pressure Shift → Pelvic Rotation → Transition Sequence → Club Delivery → Impact Mechanics → Strike Quality',
+ notes:'Master relationships: pressure stays trail side → hanging back. Pressure arrives late → early extension. Pressure never loads trail side → reverse pivot. Upper body starts first → over-the-top. Pressure stays centred → slide. Pelvis cannot rotate → club stuck at P6. Poor braking on lead side → casting. Poor lead-side stabilisation → chicken wing. Assess pressure, mass shift, and centre-of-pressure timing as three separate variables rather than one "weight shift".'},
+
+{id:'sequencing',name:'Sequencing',stage:'transition',
+ classification:'Tier 1 dynamic fault — the bridge between physical capability and technical execution',
+ keyQuestion:'Did each body segment accelerate and decelerate at the correct time? Not: are the hips open enough?',
+ confirm:'Transition (P4-P6): arms begin before pelvis, chest spins open early, pelvis stalls, club steepens or gets trapped, poor kinematic sequence, variable strike quality. 3+ signs confirms.',
+ branches:[
+  {name:'Poor pressure shift',tag:'Most common',signs:'Pressure remains on trail foot, lead foot loads late, upper body dominates transition.',why:'Without an early pressure shift, the body cannot sequence efficiently from the ground up.',screen:'Step drill, pressure plate if available, lead foot loading assessment.',fix:'Step-through drill, lead foot stomp, walk-through swings, pump drill.',physical:'Usually motor learning rather than strength.'},
+  {name:'Poor pelvic rotation',tag:'Most common',signs:'Hips barely open, pelvis stalls, chest over-rotates.',why:'The pelvis fails to initiate the kinetic chain.',screen:'Pelvic rotation test, hip IR, hip airplanes.',fix:'Belt buckle to target, chair drill, trail hip back.',physical:'Hip airplanes, split squats, rotational medicine-ball throws.'},
+  {name:'Poor thoracic-pelvic separation',signs:'Chest and pelvis move together, minimal X-factor stretch, reduced speed.',why:'The torso cannot dissociate from the pelvis.',screen:'Seated thoracic rotation, pelvic rotation assessment.',fix:'Separation drill, cross-arm turns, pause transition.',physical:'Open books, cable chops, medicine-ball step throws.'},
+  {name:'Arms dominate transition',signs:'Hands move first, shaft steepens, pulls and slices.',why:'The golfer starts the downswing with the smallest segments.',screen:'Medicine-ball throw, step-and-throw.',fix:'Pause at the top, three-pump drill, throw-the-ball drill.',physical:'Rotational throws, Pallof press, cable lifts.'},
+  {name:'Poor lead leg braking',signs:'Cannot post up, excessive slide, hanging back.',why:'Without braking on the lead side, energy cannot transfer up the chain.',screen:'Single-leg squat, lateral bound, step-down.',fix:'Post-up drill, finish holds, step drill.',physical:'Bulgarian split squats, single-leg RDL, lateral bounds.'},
+  {name:'Limited mobility',signs:'Restricted hip turn, restricted thoracic turn, early arm lift.',why:'The body cannot physically sequence correctly.',screen:'Hip IR/ER, thoracic rotation, shoulder mobility.',fix:'Reduced backswing, centered pivot, mobility-informed rehearsals.',physical:'Hip mobility, thoracic mobility, shoulder mobility.'},
+  {name:'Incorrect intent / tempo',signs:'"Hit from the top", better swings at 70% effort, jerky transition.',why:"The golfer's intention disrupts sequencing despite adequate physical capacity.",screen:'None.',fix:'3:1 tempo drill, count drill, whoosh drill, pause transition.',physical:'None required.'}
+ ],
+ ballFlight:[['Slice','Arms first + open face'],['Pull','Early chest rotation'],['Push','Pelvis stalls'],['Hook','Late release after stalled pivot'],['Fat','Pressure stays back'],['Thin','Early extension from poor sequence'],['Loss of speed','Inefficient energy transfer']],
+ decisionTree:[['Pressure shift early enough?','No → Pressure drills'],['Pelvis initiate?','No → Pelvic rotation'],['Thorax separate from pelvis?','No → Separation training'],['Arms start first?','Yes → Transition drills'],['Lead leg brake effectively?','No → Lead-leg strength'],['Mobility adequate?','No → Mobility program'],['Tempo / intent appropriate?','No → Rhythm training']],
+ chain:'Poor Pressure Shift → Poor Pelvic Rotation → Poor Sequencing → (branches to) Over the Top / Club Stuck / Slide → Early Extension → (branches to) Casting / Chicken Wing → Poor Strike & Distance',
+ notes:'Sequencing Assessment Score (SAS) — score 6 checkpoints Pass/Borderline/Fail: pressure shifts before arms, pelvis initiates downswing, thorax follows pelvis, arms accelerate after thorax, club releases after arms, finish balanced and complete. 10-12 = efficient. 7-9 = minor timing issues. 4-6 = significant breakdown. 0-3 = major kinetic chain dysfunction.'},
+
+{id:'hiking',name:'Hiking',stage:'transition',
+ classification:'TPI-sourced fault — no JDP equivalent.',
+ keyQuestion:'Why does the trail hip stay elevated and drift toward the ball instead of dropping and rotating through transition?',
+ confirm:'Down-the-line — pelvis at the start of the downswing sits higher/further forward than at the top. Face-on — trail hip stays higher than the lead hip through the first quarter-to-half of the downswing instead of the lead hip rising above it. Reduced space between body and ball.',
+ branches:[
+  {name:'Trail hip mobility restriction',tag:'Inferred — cross-referenced',signs:'Trail hip cannot rotate cleanly, pelvis elevates as compensation.',why:'Without trail hip range available, the pelvis has nowhere to go but up and forward.',screen:'Lower Quarter Rotation (trail hip).',fix:'&ldquo;Low hip&rdquo; drill — trail hip stays down and moves toward the ball, not up.',physical:'Hip IR mobility, 90/90 rotations.'},
+  {name:'Poor pelvic sequencing',tag:'Inferred',signs:'Lower body initiates the downswing incorrectly, driving up rather than down-and-around.',why:'Faulty transition sequencing routes the pelvis upward instead of rotating through.',screen:'Pelvic Rotation test.',fix:'Club-across-hips visual drill.',physical:'Med-ball rotational throws.'},
+  {name:'Poor lead leg stability',tag:'Inferred',signs:'No stable platform to rotate around.',why:'Without lead-side stability the pelvis rises and lunges forward instead of posting and rotating.',screen:'Single Leg Balance.',fix:'Post-up drill.',physical:'Single-leg RDL.'},
+  {name:'Core / pelvic control weakness',tag:'Inferred',signs:'Pelvis moves as one rigid block rather than staying low and rotating independently.',why:'Without pelvic control the whole unit rises together rather than staying low through transition.',screen:'Pelvic Tilt, Bridge with Leg Extension.',fix:'Slow-motion rehearsal.',physical:'Dead bugs, glute bridges.'}
+ ],
+ ballFlight:[['Thin/heavy contact','Reduced space to the ball'],['Push or block','Trail hip staying high blocks correct delivery']],
+ decisionTree:[['Trail hip rotate freely?','No → Hip mobility'],['Pelvis sequence correctly?','No → Sequencing drills'],['Lead leg stable?','No → Single-leg strength'],['Core/pelvic control adequate?','No → Core stability work']],
+ chain:'Unconfirmed Physical Root → Hiking (Trail Hip Stays Elevated, Pelvis Drifts Forward) → Reduced Space to Ball → Inconsistent Strike',
+ notes:'Source material gives no &ldquo;Physical Parameters&rdquo; section for this fault, unlike every other TPI entry — branches above are cross-referenced from TPI&#8217;s own screening battery, not TPI&#8217;s stated causal analysis for Hiking specifically. Treat with less confidence than other entries until checked against your own coaching experience. Watch for Early Extension crossover — both involve the pelvis moving toward the ball, though the diagnostic view differs.'},
+
+{id:'club-left-behind',name:'Early / over rotation — arms and club left behind',stage:'delivery',
+ classification:'Delivery fault — often a lead-side braking deficiency in juniors rather than a mobility problem',
+ keyQuestion:'Why did the arms fail to keep pace with the rotating body?',
+ confirm:'At P6 (shaft parallel, downswing): the club is a long way behind the trail leg. Hands, arms and club are trapped well behind the trail leg.',
+ branches:[
+  {name:'Excessive trail shoulder internal rotation / elbow flexion',signs:'Trail elbow trapped, excessive inside approach.',why:'Arm structure collapses in transition.',screen:'Trail shoulder ER, thoracic rotation, lead-leg stability.',fix:'Wall drill (miss the wall with the club, hands in front of trail thigh), split-hand pump drill.',physical:'Face pulls, band external rotations, wall slides.'},
+  {name:'Arms continuing to travel around the body while the pelvis keeps opening',signs:'Hands never catch up, clubhead stays outside hands.',why:'Body outraces the arms.',screen:'Rotational sequencing.',fix:'Tour stick gate (hands must pass in front of the stick), baseball throw feel (trail arm extends, palm rotates toward target).',physical:'Medicine-ball throws, rotational power training.'},
+  {name:'Lack of lead-side stability',tag:'Common in juniors — causes the pelvis to open aggressively without giving the arms space',signs:'Torso stalls, arms never get a chance to catch up.',why:'Player cannot support rotational load on the lead side.',screen:'Lead leg strength and deceleration, lateral pressure shift.',fix:'Step-through drill (step onto the lead foot as you swing through).',physical:'Lead leg strength, single-leg RDL, lateral bounds.'},
+  {name:'Too much side bend too early',signs:'Trail shoulder drops prematurely.',why:'Changes the plane the club needs to deliver from.',screen:'Side bend timing observation.',fix:'Pump to P6 drill (check hands in front of trail thigh, trail elbow slightly in front of trail hip, clubhead outside the hands).',physical:'Core rotational power, Pallof press.'},
+  {name:'Poor pressure shift',signs:'Pressure remains on trail foot, leaving the arms to catch up alone.',why:'No ground force pulling the body — and therefore the arms — forward.',screen:'Pressure shift assessment.',fix:'Step-through drill, smart ball under the arms drill (half shots, keeps arms working with the torso).',physical:'Split squats, single-leg RDL, lateral bounds.'},
+  {name:'Trying to create lag instead of delivering the club',signs:'Active manipulation of the wrists rather than allowing delivery.',why:'The golfer is manufacturing a position rather than letting the body deliver the club.',screen:'None — technical intent issue.',fix:'Trail arm extension drill (punch shots trail hand only, palm facing target after impact), medicine-ball side throw.',physical:'None required.'}
+ ],
+ ballFlight:[['Push','Stuck behind'],['Hook','Slide then flip'],['Block','Hands stuck behind at P6'],['Fat','Recovery timing changes every swing'],['Thin',"Can't recenter"]],
+ decisionTree:[['Lead-side stability poor?','Yes → Lead leg deceleration, step-through drill'],['Trail shoulder IR excessive?','Yes → Wall drill, shoulder ER work'],['Pressure shift poor?','Yes → Step-through drill, pressure drills'],['Side bend too early?','Yes → Sequencing rehearsal, pump to P6'],['Actively manufacturing lag?','Yes → Baseball throw feel, delivery focus']],
+ chain:'Poor Hip Mobility / Stability → Sway or Poor Sequencing → Club Left Behind at P6 → Early Extension → Casting → Fat/Thin Contact',
+ notes:"The goal isn't to simply throw the club out. The objective is to improve the relationship between the arms and torso so the hands move down, forward and out — not around and behind. Progression: Stage 1 slow motion no ball (wall drill, pump to P6, split-hand drill) → Stage 2 half shots (step-through, trail arm extension, alignment stick gate) → Stage 3 dynamic (medicine ball throws, full swings, random targets)."},
+
+{id:'over-the-top',name:'Over the top',stage:'delivery',
+ classification:'Secondary technical fault — a compensation for something that happened in the backswing or transition',
+ keyQuestion:'Why did the golfer need to steepen the club? (OTT describes club path, it is not a diagnosis.)',
+ confirm:'Transition (P4-P5): shaft steepens above the original shaft plane, hands move away from the body, clubhead moves outside the hands, trail shoulder moves toward the ball, club approaches from outside the target line. 3+ signs confirms.',
+ branches:[
+  {name:'Reverse spine angle',tag:'Most common',signs:'Spine tilted toward target at P4, lead shoulder high, head moves toward target, steep transition immediately follows.',why:'The golfer has no room to shallow the club and must deliver it over the plane.',screen:'Hip rotation, thoracic rotation, core stability.',fix:'Centered pivot, trail hip back, chair drill, trail glute against wall.',physical:'Hip mobility, thoracic mobility, Pallof press, hip airplanes.'},
+  {name:'Poor pressure shift',tag:'Common',signs:'Pressure remains on trail foot, pelvis stalls, upper body starts first.',why:'Without pressure moving into the lead side, the upper body dominates the transition.',screen:'Step test, single-leg balance, lateral bound.',fix:'Step drill, walk-through drill, lead foot stomp.',physical:'Split squats, single-leg RDL, walking lunges, lateral hops.'},
+  {name:'Flat shoulder plane / deep hands',signs:'Hands well behind trail shoulder, club laid off or deep, arms trapped.',why:"The golfer reroutes the club over the plane because it's too far behind them.",screen:'Thoracic rotation, trail shoulder mobility.',fix:'Steeper shoulder turn, earlier arm lift, split-hand drill, mirror work.',physical:'Wall slides, open books, face pulls.'},
+  {name:'Arms start before lower body',signs:'Hands move first, chest spins open, pelvis barely moves.',why:'Poor sequencing steepens the shaft immediately.',screen:'Medicine-ball throw, rotational sequencing drill.',fix:'Pause at the top, three-pump drill, step drill.',physical:'Medicine-ball scoop toss, cable rotations, Pallof press.'},
+  {name:'Limited thoracic rotation',signs:'Chest cannot rotate sufficiently, arms lift vertically, shaft steepens.',why:'The golfer substitutes arm lift for body rotation.',screen:'Seated rotation, open books, thread the needle.',fix:'Cross-arm turns, shirt buttons behind the ball, slow-motion swings.',physical:'Windmills, quadruped rotations, thoracic extensions.'},
+  {name:'Open clubface',signs:'Slice, weak fade, face visibly open at P5.',why:'Many golfers instinctively steepen the club to square an open face.',screen:'Wrist mobility, grip assessment.',fix:'Motorcycle drill, lead wrist flexion, grip adjustment.',physical:'Wrist strengthening, forearm rotation.'},
+  {name:'Incorrect intent',signs:'"Hit hard from the top", violent transition, tempo improves at 70%.',why:'The golfer accelerates the club too early instead of sequencing from the ground up.',screen:'Technical rather than physical.',fix:'Tempo training, count drill, whoosh drill, pause transition.',physical:'None required.'}
+ ],
+ ballFlight:[['Pull','OTT with square face'],['Pull fade','OTT with open face'],['Slice','OTT + open face'],['Pull hook','OTT + closed face'],['Heel strike','Handle moves out'],['Deep divots','Steep angle of attack']],
+ decisionTree:[['Reverse spine angle?','Yes → Fix pivot first'],['Pressure reach lead side?','No → Pressure shift drills'],['Hands too deep?','Yes → Shoulder plane & arm structure'],['Arms start first?','Yes → Sequencing drills'],['Thoracic rotation adequate?','No → Improve T-spine'],['Clubface open?','Yes → Grip & wrist mechanics'],['Trying to hit from the top?','Yes → Tempo & intent']],
+ chain:'Poor Hip / Thoracic Mobility → Reverse Spine Angle → Poor Pressure Shift → Upper Body Dominates Transition → Over the Top → Steep Shaft → Pull / Slice / Heel Strike',
+ notes:'Two distinct types requiring different priorities. Type 1 — Steep-from-the-Top (classic slicer): reverse spine angle, upper body starts first, open clubface, pulls/pull-fades/slices; fix pivot, pressure shift, sequencing, then clubface. Type 2 — Recovery Over-the-Top: flat shoulder plane, deep hands, club trapped behind at the top, golfer reroutes over the plane to reach the ball; fix backswing structure (shoulder plane, arm depth, trail hip depth) before addressing the downswing.'},
+
+{id:'slide',name:'Slide',stage:'delivery',
+ classification:'Primary technical fault (downswing)',
+ keyQuestion:'Why did the pelvis keep driving toward the target instead of rotating and braking?',
+ confirm:'The player gets to P5 and simply keeps driving the pelvis toward the target. Observe: pelvis continues toward target through impact, little rotational braking, lead hip does not deepen, chest remains closed, handle behind body, lead knee keeps flexing.',
+ branches:[
+  {name:'Poor lead leg braking',tag:'Most common',signs:'Pelvis never posts, lead knee keeps moving, chest hangs back.',why:'No braking force — everything keeps sliding.',screen:'Single-leg squat, single-leg sit-to-stand, vertical jump.',fix:'Lead leg posting, step drill, finish tall.',physical:'Rear-foot elevated split squat, single-leg RDL, skater jumps, lateral bounds.'},
+  {name:'Poor pressure shift',signs:'Pressure never reaches lead heel, trail heel stays down, hanging back.',why:'Player never establishes a stable lead side.',screen:'Pressure shift assessment.',fix:'Walk-through drill, step drill, lead foot stomp.',physical:'Walking lunges, farmer carries, split squats.'},
+  {name:'Lead hip internal rotation restriction',signs:'Lead hip stops rotating, pelvis continues sliding, early extension often follows.',why:'The lead hip cannot clear, so the pelvis keeps sliding to compensate.',screen:'Lead Hip IR: Excellent 40°, Good 30°, Poor 20°, Red <15°.',fix:'Left pocket behind, chair drill, wall drill.',physical:'Hip IR, 90/90, hip airplanes, lateral lunges.'},
+  {name:'Club stuck behind',signs:'Hands behind trail thigh, trail elbow trapped, excessive inside delivery.',why:'The player slides to create room for the trapped club.',screen:'Trail shoulder ER, lead leg stability, thoracic rotation.',fix:'Wall drill, pump drill, split hands, baseball throw.',physical:'Lead leg stability, thoracic mobility, shoulder ER.'},
+  {name:'Weak rotational core',signs:'Chest never catches the pelvis, body continues drifting.',why:'Core cannot stabilize and decelerate the trunk.',screen:'Pallof press, side plank, dead bug, bird dog.',fix:'Pause transition, slow motion, finish rotation.',physical:'Pallof press, carries, cable lifts, medicine-ball throws.'}
+ ],
+ ballFlight:[['Push','Excessive slide'],['Hook','Slide then flip'],['Thin','Pelvis toward target'],['Fat','Low point behind'],['Heel','Handle high'],['Weak fade','Poor rotation']],
+ decisionTree:[['Lead leg brake?','No → Strength'],['Pressure shift?','Poor → Step drills'],['Lead hip IR?','Poor → Mobility'],['Club stuck?','Yes → Sequencing'],['Core stability?','Poor → Anti-rotation work']],
+ chain:'Poor Hip Mobility / Stability → Sway → Reverse Spine Angle → Poor Pressure Shift → Downswing Slide → Club Stuck at P6 → Early Extension → Flip Release → Poor Contact & Inconsistent Ball Flight'},
+
+{id:'forward-lunge',name:'Forward lunge',stage:'delivery',
+ classification:'TPI-sourced fault — no JDP equivalent. Distinct from Slide (lower body drifts toward target) — here the upper body outpaces the lower body&#8217;s lateral shift during transition and downswing.',
+ keyQuestion:'Why does the upper body drive laterally toward the target harder than the lower body during the downswing?',
+ confirm:'Upper body lateral movement toward the target visibly exceeds the lower body&#8217;s shift (normal ratio is roughly 4in lower body to 2&#8211;3in upper body — Forward Lunge reverses that), steep downward attack angle, high spinny ball flight.',
+ branches:[
+  {name:'Poor lower body weight shift / rotation capacity',tag:'Most common',signs:'Lower body cannot move and rotate efficiently.',why:'When the lower body can&#8217;t initiate the shift, the upper body compensates by lunging toward the target instead.',screen:'Pressure shift assessment, single-leg RDL, glute bridge.',fix:'Step-through drill, lead-leg posting.',physical:'Split squats, lateral bounds, single-leg RDL.'},
+  {name:'Limited hip mobility',signs:'Restricted hip turn forces the upper body to take over the lateral move.',why:'Without hip rotation available, the body finds movement wherever it can — usually the upper body driving forward.',screen:'Lower Quarter Rotation, hip IR.',fix:'Chair drill, hip mobility rehearsals.',physical:'90/90 rotations, hip airplanes.'},
+  {name:'Ankle mobility restriction',signs:'Restricted ankle range limits lower body engagement in the shift.',why:'Ankle mobility is foundational to a controlled lower body weight shift.',screen:'Knee-to-wall dorsiflexion test.',fix:'Feet-together swings.',physical:'Calf and ankle mobility.'},
+  {name:'Lower body strength / power deficit',signs:'Lower body lacks the strength or power to lead the downswing.',why:'A weak lower body cannot generate the shift and rotation needed, so the upper body substitutes with a lunge.',screen:'Single-leg squat, vertical jump, lateral bound quality.',fix:'Med-ball transfer drills, lead-leg posting.',physical:'Med ball discus throws, lateral bounds, single-leg RDL, step-ups.'}
+ ],
+ ballFlight:[['High weak/spinny shots','Steep attack angle from upper-body-led lunge'],['Steep divots','Downward attack angle'],['Distance loss','Inefficient energy transfer']],
+ decisionTree:[['Lower body shift/rotate efficiently?','No → Pressure shift & rotation work'],['Hip mobility adequate?','No → Improve hip IR/ER'],['Ankle mobility adequate?','No → Restore dorsiflexion'],['Lower body power sufficient?','No → Strength & power training']],
+ chain:'Poor Lower Body Mobility / Strength → Upper Body Compensates (Forward Lunge) → Steep Attack Angle → High Spinny Contact',
+ notes:'Cross-check against Slide during coaching — both involve excessive lateral movement, but Forward Lunge is upper-body-led and Slide is lower-body-led. Confirm which segment is actually driving before assigning a program.'},
+
+{id:'early-extension',name:'Early extension',stage:'impact',
+ classification:'Secondary compensation — the golfer is trying to create space they believe does not exist',
+ keyQuestion:'Why does the golfer need to stand up? (Solve this and it often disappears without ever cueing "keep your butt back".)',
+ confirm:'Through impact (P5.5-P7): pelvis moves toward the golf ball, glutes lose contact with an imaginary wall, hip flexion decreases rapidly, spine becomes more vertical, arms trapped, handle rises. 3+ signs confirms.',
+ branches:[
+  {name:'Club stuck behind the body',tag:'Most common — by far',signs:'Club behind trail hip at P6, trail elbow trapped, excessive inside approach, hooks/pushes/blocks.',why:'The golfer stands up to make room for the arms.',screen:'Lead leg stability, trail shoulder ER, thoracic rotation, pressure shift.',fix:'Wall drill, step drill, split-hand drill, pump to P6.',physical:'Split squats, single-leg RDL, Pallof press, medicine-ball throws.'},
+  {name:'Poor lead hip internal rotation',signs:'Pelvis stops rotating, lead hip stalls, chest stands up.',why:"If the lead hip can't internally rotate, the pelvis has nowhere to go — so it moves toward the golf ball.",screen:'90/90 Hip IR: Excellent 40°, Good 30°, Poor 20°, Red flag <15°.',fix:'Feel left pocket moving behind you, chair drill, wall drill.',physical:'90/90 rotations, hip airplanes, banded IR, lateral lunges.'},
+  {name:'Poor lead leg strength',signs:'Lead knee keeps flexing, pelvis never posts, body jumps upward.',why:"Can't support rotational forces.",screen:'Single-leg squat, single-leg sit-to-stand, Y balance.',fix:'Step-through drill, lead-leg post drill, feet together drill.',physical:'Rear-foot elevated split squats, step-ups, single-leg RDL, skater hops.'},
+  {name:'Trail side dominance',signs:'Pressure stays trail side, trail heel flat, hanging back.',why:'The golfer never transfers pressure — standing up becomes the only way to reach the ball.',screen:'Pressure shift, single-leg balance, lateral hop.',fix:'Walk-through swings, lead-foot stomp, step drill.',physical:'Lunges, lateral bounds, farmer carries, walking split squats.'},
+  {name:'Loss of posture in backswing',signs:'Standing up in backswing, pelvis extends early, chest rises.',why:'Early extension starts before transition.',screen:'Hip hinge, toe touch, thoracic rotation.',fix:'Wall drill, mirror posture, slow backswing rehearsals.',physical:'RDL pattern, hip hinge drills, band pull-throughs, mobility flow.'},
+  {name:'Limited thoracic rotation',signs:'Pelvis spins, chest stalls, arms trapped.',why:'The player cannot separate thorax and pelvis.',screen:'Seated rotation, open books, pelvic rotation test.',fix:'Split-hand swings, pump drill, pause transition.',physical:'Quadruped rotations, thread the needle, medicine-ball rotations, Pallof press.'},
+  {name:'Poor ankle mobility',signs:'Loss of balance, lead heel lifts, pelvis thrusts.',why:"Can't maintain posture while rotating.",screen:'Knee-to-wall test, single-leg squat.',fix:'Feet together drill, pressure shift drill, balance swings.',physical:'Ankle dorsiflexion, calf mobility, goblet squat holds, single-leg balance.'}
+ ],
+ ballFlight:[['Hook','Club trapped then flipped'],['Push','Club trapped with open face'],['Thin','Standing up raises handle'],['Heel strike','Pelvis toward ball'],['Toe strike','Excessive standing up then reaching'],['High weak fade','Throwing arms over to recover']],
+ decisionTree:[['Club behind at P6?','Yes → Fix sequencing first'],['Lead hip rotate freely?','No → Improve hip IR'],['Lead leg stable?','No → Strength & deceleration'],['Pressure reach lead side?','No → Pressure drills'],['Lose posture in backswing?','Yes → Rebuild backswing'],['Thoracic mobility adequate?','No → Improve T-spine'],['Ankle mobility sufficient?','No → Restore dorsiflexion']],
+ chain:'Early extension → Club stuck at P6 → Flip / release pattern → Inconsistent low point → Fat / thin contact. Steep downswing → Over-the-top and pull slice.',
+ notes:"Coaching priority order: 1. Fix the club getting stuck at P6 (most common driver). 2. Improve pressure shift into the lead side. 3. Build lead-leg stability and braking. 4. Restore lead hip internal rotation. 5. Improve thoracic mobility and separation. 6. Address posture only after the movement issues are improving. Chasing symptoms of early extension often creates new problems."},
+
+{id:'loss-of-posture',name:'Loss of posture',stage:'impact',
+ classification:'Secondary compensation (setup posture can be a Primary Fault) — occurs at every phase of the swing',
+ keyQuestion:"Why couldn't the golfer maintain their spine angles?",
+ confirm:'Through the swing (P2-P7): pelvis moves toward the ball, hip flexion decreases, chest rises, head lifts significantly, handle raises through impact, glutes lose depth. 3+ signs confirms.',
+ branches:[
+  {name:'Early extension',tag:'Most common',signs:'Pelvis thrusts toward the ball, handle rises, loss of hip depth, standing up through impact.',why:'Loss of posture is often simply the visible result of early extension.',screen:'Lead hip IR, single-leg squat, hip hinge.',fix:'Chair drill, wall drill, lead hip back, maintain glute depth.',physical:'Split squats, hip airplanes, single-leg RDL, Pallof press.'},
+  {name:'Club stuck behind at P6',tag:'Common',signs:'Hands behind trail thigh, trail elbow trapped, excessively inside delivery.',why:'The golfer stands up to create room for the club.',screen:'Trail shoulder ER, thoracic rotation, pressure shift.',fix:'Pump drill, wall drill, split-hand drill, baseball throw.',physical:'Medicine-ball throws, shoulder ER, hip mobility.'},
+  {name:'Poor setup posture',signs:'Too upright, rounded shoulders, minimal hip hinge, knees too flexed or too straight.',why:'Poor address posture is difficult to maintain dynamically.',screen:'Hip hinge, toe touch, overhead squat.',fix:'Athletic posture, mirror setup, hip hinge drill.',physical:'RDL pattern, goblet squat, hamstring mobility, core stability.'},
+  {name:'Limited hip mobility',signs:'Pelvis stops rotating, hips rise, early extension follows.',why:'The golfer runs out of hip motion and changes posture to continue moving.',screen:'Hip IR, hip ER, hip airplanes.',fix:'Chair drill, trail hip back, left pocket behind.',physical:'90/90 mobility, hip CARs, lateral lunges.'},
+  {name:'Poor core endurance',signs:'Posture deteriorates progressively, better for first few swings, worse late in the round.',why:'The trunk cannot stabilize while rotating over time.',screen:'Side plank, front plank, dead bug, bird dog.',fix:'Slow-motion swings, pause drills, finish in posture.',physical:'Pallof press, carries, side planks, dead bugs.'},
+  {name:'Poor lead leg stability',signs:'Lead knee collapses, body rises, finish unstable.',why:'The golfer cannot support rotational forces on the lead side.',screen:'Single-leg squat, step-down, Y balance.',fix:'Step drill, finish tall, post-up drill.',physical:'Split squats, step-ups, single-leg RDL, skater jumps.'},
+  {name:'Poor balance',signs:'Excessive movement in both directions, feet unstable, finish inconsistent.',why:'The golfer constantly reorganizes posture to maintain balance.',screen:'Single-leg balance, tandem balance, Y balance.',fix:'Feet-together swings, balance board (advanced), slow-motion swings.',physical:'Single-leg balance, farmer carries, lateral hops.'}
+ ],
+ ballFlight:[['Thin','Handle rises'],['Heel strike','Pelvis toward ball'],['Push','Club trapped after standing up'],['Hook','Stand up then flip'],['High launch','Dynamic loft increases'],['Fat','Timing inconsistency']],
+ decisionTree:[['Early extension?','Yes → Restore hip depth'],['Club stuck at P6?','Yes → Improve sequencing'],['Setup posture athletic?','No → Rebuild address'],['Hip mobility adequate?','No → Improve mobility'],['Core endurance sufficient?','No → Core stability program'],['Lead leg stable?','No → Strength & braking'],['Balance adequate?','No → Balance training']],
+ chain:'Poor Hip Mobility / Poor Setup → Poor Pelvic Rotation → Club Stuck at P6 → Early Extension → Loss of Posture → Chicken Wing / Casting → Heel Strike / Thin Contact',
+ notes:'Split posture into three categories with different root causes: Setup Posture (spine angle, hip hinge, knee flex, balance — technique/mobility root), Dynamic Posture (can it be maintained P1-P4 — hip mobility, core stability, thoracic mobility root), Impact Posture (maintained P5-P7 — early extension, sequencing, lead-leg strength, club delivery root). Two golfers can both "lose posture" for completely different reasons and need different interventions.'},
+
+{id:'hanging-back',name:'Hanging back',stage:'impact',
+ classification:'Secondary compensation — almost never the real problem; usually one of the last compensations in the kinetic chain',
+ keyQuestion:'What made the golfer afraid or unable to move pressure onto the lead side? (Not: "get your weight forward.")',
+ confirm:'Through impact (P6-P8): chest remains behind the ball well into impact, pressure stays predominantly on the trail foot, trail heel stays down too long, lead leg never fully posts, head remains excessively behind the ball, finish balanced on the trail side. Note: head-behind-ball alone is not diagnostic — the key is whether pressure has shifted (a player can keep head behind the ball while 80-90% of pressure is on the lead foot). 3+ signs confirms.',
+ branches:[
+  {name:'Poor pressure shift',tag:'Most common',signs:'Pressure never reaches the lead heel, trail heel remains flat, arms dominate the downswing.',why:'The player never establishes a stable lead side, so they stay back and release the club early.',screen:'Step test, lateral bound, single-leg balance, pressure shift assessment.',fix:'Step drill, walk-through drill, lead foot stomp, feet-together swings.',physical:'Split squats, walking lunges, lateral bounds, single-leg RDL.'},
+  {name:'Reverse spine angle',signs:'Spine leans toward the target at the top, reverse weight shift, steep transition.',why:'The golfer starts from a poor top-of-backswing position and must recover by hanging back.',screen:'Hip rotation, thoracic rotation, core stability.',fix:'Centered pivot, trail hip back drill, chair drill.',physical:'Hip mobility, thoracic rotation, Pallof press.'},
+  {name:'Fear of hitting behind the ball',signs:'Scooping motion, high dynamic loft, thin strikes, loss of shaft lean.',why:'The golfer instinctively backs away to help the ball into the air.',screen:'Usually technical rather than physical.',fix:'Tee in front of the ball, low-point drills, punch shots, divot after the ball.',physical:'Usually not required.'},
+  {name:'Club stuck behind at P6',signs:'Hands behind the trail thigh, trail elbow trapped, excessive inside delivery.',why:'The golfer hangs back to give the club time to catch up.',screen:'Trail shoulder ER, lead leg stability, thoracic rotation.',fix:'Wall drill, pump to P6, split-hand drill, baseball throw.',physical:'Medicine-ball throws, hip mobility, Pallof press.'},
+  {name:'Poor lead leg strength',signs:'Lead knee keeps flexing, pelvis never posts, finish unstable.',why:'The golfer cannot accept or brake force on the lead side.',screen:'Single-leg squat, step-down, Y-balance, vertical jump.',fix:'Post-up drill, finish tall, step-through drill.',physical:'Rear-foot elevated split squats, step-ups, single-leg RDL, skater jumps.'},
+  {name:'Limited lead hip internal rotation',signs:'Pelvis stops rotating, slide or early extension follows, weight remains back.',why:'The lead hip cannot clear, so the body avoids moving into it.',screen:'Lead Hip IR: Excellent >40°, Good 30–40°, Poor 20–30°, Red flag <20°.',fix:'Left pocket behind, chair drill, wall drill.',physical:'90/90 rotations, hip airplanes, banded IR, lateral lunges.'},
+  {name:'Poor rotational sequencing',signs:'Arms start first, chest stalls, pelvis slides, tempo inconsistent.',why:'The golfer never transfers energy efficiently through the kinetic chain.',screen:'Medicine-ball throw, step-and-throw, rotational sequencing drill.',fix:'Pause at the top, three-pump drill, step drill, count tempo.',physical:'Medicine-ball scoop toss, cable rotations, Pallof press, anti-rotation work.'}
+ ],
+ ballFlight:[['Fat','Low point behind the ball'],['Thin','Scooping to avoid the turf'],['High weak fade','No compression'],['Push','Club trapped while hanging back'],['Hook','Hang back then flip'],['Loss of distance','Poor energy transfer']],
+ decisionTree:[['Pressure reach lead side?','No → Pressure shift drills'],['Reverse spine angle?','Yes → Fix backswing pivot'],['Club stuck at P6?','Yes → Improve sequencing'],['Lead leg stable?','No → Strength & braking'],['Lead hip rotate?','No → Hip mobility'],['Fear of ground contact?','Yes → Low-point training'],['Sequencing efficient?','No → Kinematic drills']],
+ chain:'Poor Hip Mobility / Poor Pivot → Reverse Spine Angle → Poor Pressure Shift → Hanging Back → Early Release / Casting → Loss of Shaft Lean → Fat / Thin Contact',
+ notes:'Distinguish pressure hanging back (a fault — pressure fails to transfer, causing fat/thin/loss of compression) from head hanging back (not necessarily a fault — with the driver, head remaining behind the ball while pressure has already shifted is common in elite players and helps launch conditions). Pressure movement is the more reliable diagnostic than head movement alone.'},
+
+{id:'casting-scooping',name:'Casting / scooping',stage:'impact',
+ classification:'Secondary compensatory fault — rarely the first thing that breaks down',
+ keyQuestion:'Why did the golfer need to release the club early?',
+ confirm:'At transition (P5-P6): early loss of wrist angles, clubhead overtakes the hands before P6, shaft steepens early (or occasionally shallows excessively before releasing), lead wrist extends early, club reaches maximum speed too early. 3+ signs confirms.',
+ branches:[
+  {name:'Poor pressure shift',tag:'Most common in juniors',signs:'Pressure stays on trail foot, lead heel loads late, chest hangs back, low point inconsistent.',why:'Without moving pressure forward, the golfer must throw the club to reach the ball.',screen:'Pressure shift drill, single-leg balance, lateral bound, step-down test.',fix:'Step drill, walk-through drill, lead foot stomp, feet-together swings.',physical:'Split squats, walking lunges, lateral hops, single-leg RDL.'},
+  {name:'Club stuck behind at P6',tag:'Common',signs:'Hands behind trail thigh, trail elbow trapped, club approaches excessively from the inside.',why:'The golfer releases early to get the club back in front of the body.',screen:'Lead-leg stability, trail shoulder external rotation, thoracic rotation.',fix:'Wall drill, pump to P6, split-hand drill, baseball throw drill.',physical:'Medicine-ball throws, Pallof press, hip mobility, shoulder ER work.'},
+  {name:'Steep transition',signs:'Shaft above the plane at P5, arms dominate transition, pulls and slices.',why:'The golfer casts to shallow the club before impact.',screen:'Thoracic rotation, shoulder mobility, pelvic rotation.',fix:'Motorcycle drill, pump drill, pause transition, split-hand swings.',physical:'Open books, hip airplanes, wall slides, medicine-ball rotations.'},
+  {name:'Poor lead leg braking',signs:'Lead knee keeps flexing, pelvis never posts, early extension often follows.',why:'Without a stable lead side, energy leaks and the wrists release early.',screen:'Single-leg squat, step-down, vertical jump.',fix:'Lead leg post drill, finish tall, step-through drill.',physical:'Rear-foot elevated split squats, skater jumps, single-leg RDL, box step-ups.'},
+  {name:'Limited wrist mobility or grip issues',signs:'Inability to maintain wrist extension/flexion, very weak grip, clubface unstable.',why:'The golfer cannot physically maintain the delivery position.',screen:'Wrist flexion/extension, forearm rotation, grip assessment.',fix:'Punch shots, impact bag, half swings, grip adjustment.',physical:'Wrist strengthening, rice bucket drills, pronation/supination exercises.'},
+  {name:'Poor sequencing',signs:'Arms start before pelvis, chest dominates, tempo inconsistent.',why:'The golfer accelerates the club from the top instead of transferring energy through the kinetic chain.',screen:'Medicine-ball throw, step-and-throw, rotational sequencing drill.',fix:'Pause at the top, three-pump drill, step drill, count tempo.',physical:'Medicine-ball scoop toss, cable rotations, Pallof press, anti-rotation work.'},
+  {name:'Intent to "hit" instead of "swing"',signs:'Violent transition, max effort from the top, better swings at 70% speed.',why:'The golfer tries to create speed too early rather than delivering speed at impact.',screen:'Technical and behavioural rather than physical.',fix:'50-70% speed swings, whoosh drill (whoosh after the ball), eyes-closed rehearsal, tempo training.',physical:'Usually not required.'}
+ ],
+ ballFlight:[['Fat','Low point behind ball'],['Thin','Early release with handle raising'],['Weak fade','Loss of shaft lean'],['High launch / high spin','Dynamic loft increases'],['Inconsistent distance','Energy released too early'],['Pull','Arms dominate transition']],
+ decisionTree:[['Pressure reach lead side?','No → Pressure shift drills'],['Club stuck at P6?','Yes → Sequencing first'],['Transition steep?','Yes → Improve delivery'],['Lead leg stable?','No → Strength & braking'],['Wrist mobility adequate?','No → Mobility & grip'],['Sequencing efficient?','No → Kinematic drills'],['Trying to hit from the top?','Yes → Tempo & intent']],
+ chain:'Poor Pressure Shift → Steep Transition OR Club Stuck at P6 → Early Extension → Casting / Early Release → Loss of Shaft Lean → High Dynamic Loft → Fat/Thin Contact + Distance Loss',
+ notes:'Before giving any wrist-angle drills, check in order: 1. Is pressure getting to the lead side early enough? 2. Is the club trapped behind the body at P6? 3. Is the transition excessively steep? 4. Can the lead leg accept and brake force? 5. Is sequencing pelvis → torso → arms → club occurring naturally? 6. Only then look at wrist mechanics or grip. Improving sequencing and body mechanics often makes casting disappear without ever cueing "hold your wrist angles".'},
+
+{id:'chicken-wing',name:'Chicken wing',stage:'impact',
+ classification:'Secondary compensation, similar to casting and hanging back — the arm is almost always the emergency brake, not the root cause',
+ keyQuestion:"Why couldn't the lead arm continue extending after impact?",
+ confirm:'Through impact (P7-P8): lead elbow flexes immediately after impact, lead arm separates from the chest, trail arm remains bent too long, club exits steep and left, limited extension down the target line, loss of clubhead speed after impact. 3+ signs confirms.',
+ branches:[
+  {name:'Club stuck behind at P6',tag:'Most common',signs:'Hands behind the trail thigh, trail elbow trapped, excessive inside approach.',why:'The golfer runs out of space and must fold the lead arm to avoid hitting the ground or shanking the ball.',screen:'Lead-leg stability, trail shoulder external rotation, thoracic rotation.',fix:'Wall drill, pump to P6, split-hand drill, baseball throw drill.',physical:'Medicine-ball throws, Pallof press, hip mobility, shoulder ER work.'},
+  {name:'Early extension',tag:'Common',signs:'Pelvis moves toward the ball, handle rises, loss of posture.',why:'As space disappears, the lead arm bends to create room.',screen:'Lead hip IR, single-leg squat, hip hinge.',fix:'Chair drill, wall drill, lead hip back, finish in posture.',physical:'Split squats, hip airplanes, single-leg RDL, core stability.'},
+  {name:'Open clubface through impact',signs:'Weak fades, high shots, face remains open.',why:'The golfer bends the lead arm to square the face.',screen:'Lead wrist mobility, grip assessment, forearm rotation.',fix:'Motorcycle drill, stronger grip (if appropriate), punch shots, lead wrist flexion rehearsals.',physical:'Wrist strengthening, forearm pronation/supination, rice bucket drills.'},
+  {name:'Poor lead arm mobility',tag:'Structural — screen for this before assuming compensatory',signs:'Difficulty fully extending the elbow, restricted shoulder flexion, tight chest.',why:'The golfer physically cannot maintain extension.',screen:'Shoulder flexion, horizontal adduction, elbow extension.',fix:'Slow extension drills, one-arm swings, towel extension drill.',physical:'Pec stretching, wall slides, serratus activation, shoulder mobility.'},
+  {name:'Poor rotational speed',signs:'Chest stalls, arms outrun the body, finish lacks rotation.',why:'Without body rotation, the arms must fold to slow the club.',screen:'Medicine-ball throw, thoracic rotation, cable rotation.',fix:'Finish-to-target drill, rotation through impact, step-through drill.',physical:'Medicine-ball scoop throws, rotational cable lifts, Pallof press.'},
+  {name:'Poor low-point control',signs:'Fear of taking a divot, thin strikes, picking the ball clean.',why:'The golfer instinctively shortens the radius through impact.',screen:'Mostly technical.',fix:'Divot line drill, tee after the ball, punch shots.',physical:'Usually not required.'},
+  {name:'Grip too weak / poor clubface awareness',signs:'Chicken wing with weak fade, lack of forearm rotation, passive release.',why:'The golfer compensates for an open face by folding the lead arm.',screen:'None specific.',fix:'Grip adjustment, forearm release drills, split-hand release drill.',physical:'Minimal unless wrist mobility is limited.'}
+ ],
+ ballFlight:[['Weak fade','Open face + chicken wing'],['Pull fade','Stall then fold'],['Thin','Radius shortens'],['Heel strike','Loss of space'],['Short distance','Loss of extension and speed'],['High spin','Poor compression']],
+ decisionTree:[['Club stuck at P6?','Yes → Improve sequencing'],['Early extension?','Yes → Restore space'],['Clubface open?','Yes → Grip & wrist mechanics'],['Lead arm mobility?','Poor → Mobility work'],['Rotational speed?','Poor → Improve body rotation'],['Low-point control?','Poor → Strike drills'],['Grip appropriate?','No → Grip assessment']],
+ chain:'Poor Pivot / Pressure Shift → Club Stuck at P6 → Early Extension → Loss of Space → Chicken Wing → Weak Strike & Loss of Speed',
+ notes:"Distinguish Structural Chicken Wing (restricted shoulder mobility, limited elbow extension, pain or previous injury — needs mobility/strength work alongside technical coaching) from Compensatory Chicken Wing (≈90% of golfers — most common order of upstream causes: club stuck behind at P6, early extension, open clubface, poor body rotation, low-point control issues). Correct the earliest breakdown and chicken wing often reduces or disappears without ever telling the player to keep their left arm straight."},
+
+{id:'late-buckle',name:'Late buckle',stage:'impact',
+ classification:'TPI-sourced fault — no JDP equivalent. Distinct from Early Extension (forward thrust toward the ball) and Hanging Back (failure to transfer weight forward) — this is a downward collapse immediately after contact.',
+ keyQuestion:'Why does the lower body drop and buckle right after impact instead of continuing to rise into the finish?',
+ confirm:'Sudden visible knee bend/dip in the first moment after contact, loss of height through the finish, a &ldquo;dropping&rdquo; rather than &ldquo;rising&rdquo; motion into the follow-through, visible from both face-on and down-the-line. 3+ signs confirms.',
+ branches:[
+  {name:'Poor lead leg stability',tag:'Most common',signs:'Lead hip/leg cannot support rotational load through impact and collapses to absorb force instead of transferring it.',why:'Without a stable lead side the body has no way to decelerate impact forces other than letting the knees buckle.',screen:'Lead Hip IR, single-leg squat, lateral hop and stick.',fix:'Post-up drill, finish-tall holds.',physical:'Single-leg RDL, split squats, lateral bounds.'},
+  {name:'Ankle dorsiflexion restriction',signs:'Limited ankle mobility forces the knee to buckle to find range elsewhere.',why:'When the ankle cannot absorb load through its own range, the knee compensates.',screen:'Knee-to-wall dorsiflexion test.',fix:'Feet-together swings, balance-focused rehearsals.',physical:'Calf and ankle mobility work.'},
+  {name:'Core / lumbar instability',signs:'Weak core allows the pelvis to collapse rather than stabilize through the deceleration phase.',why:'Without core control the pelvis has no anchor to rotate and stabilize around.',screen:'Dead bug, side plank, Pallof press.',fix:'Brace and hold through the finish.',physical:'Dead bugs, Pallof press, carries.'},
+  {name:'Lower back dysfunction (pain avoidance)',signs:'May present as the buckle without a clear mobility or strength deficit on screening.',why:'The buckle may be an unconscious strategy to offload lower back load at impact rather than a pure physical limitation.',screen:'Observation and pain history — refer to a physio if suspected.',fix:'Do not push through this one technically until cleared.',physical:'None until cleared.'},
+  {name:'Compensatory energy dump',signs:'Coexists with Chicken Wing or Loss of Posture.',why:'Rather than standing up (Early Extension) or hanging back, the body dumps excess uncontrolled force downward through the knees.',screen:'Cross-check Chicken Wing and Loss of Posture frameworks.',fix:'Address whichever co-occurring fault is primary first.',physical:'See linked fault.'}
+ ],
+ ballFlight:[['Loss of distance/power','Energy absorbed by the knees rather than transferred'],['Inconsistent strike','Variable deceleration point'],['Occasional thin contact','If the buckle starts before contact']],
+ decisionTree:[['Lead leg stable?','No → Strength & deceleration'],['Ankle mobility adequate?','No → Restore dorsiflexion'],['Core stable?','No → Anti-collapse core work'],['Pain present?','Yes → Refer out before continuing'],['Co-occurring fault present?','Yes → Treat that fault first']],
+ chain:'Poor Lead-Leg / Core / Ankle Capacity → Cannot Stabilize Impact Forces → Late Buckle → Power Leak & Inconsistent Finish',
+ notes:'No formal video diagnostic given in source material beyond visual observation — this is a &ldquo;watch for it&rdquo; fault rather than a line-drawing one.'},
+
+{id:'post-impact-flyaway',name:'Post impact flyaway',stage:'impact',
+ classification:'Post-impact compensation — often one of the final visible signs of problems that occurred much earlier in the swing',
+ keyQuestion:"Why couldn't the golfer continue rotating with the club staying connected to the body?",
+ confirm:'Follow through (P8-P9): club exits rapidly away from the body, hands separate from the torso immediately after impact, arms straighten away from the chest, club finishes high and disconnected, little body rotation after impact, loss of width around the lead shoulder. 3+ signs confirms.',
+ branches:[
+  {name:'Chicken wing',tag:'Most common — by far',signs:'Lead elbow bends immediately after impact, club exits left then upward, lead arm disconnects.',why:'The folded lead arm throws the club away from the body.',screen:'Lead shoulder mobility, elbow extension, thoracic rotation.',fix:'Extension drill, towel under lead arm, split-hand drill, "shake hands with the target".',physical:'Serratus activation, wall slides, pec mobility, shoulder stability.'},
+  {name:'Early extension',tag:'Most common — by far',signs:'Pelvis moves toward the ball, chest rises, handle lifts.',why:'Standing up removes space for the club to rotate around the body.',screen:'Lead hip IR, hip hinge, single-leg squat.',fix:'Chair drill, wall drill, maintain hip depth.',physical:'Hip airplanes, split squats, Pallof press.'},
+  {name:'Stall through impact',signs:'Chest stops rotating, arms continue independently, finish lacks body rotation.',why:'When the body stops, the arms "throw" the club outward.',screen:'Medicine-ball throw, thoracic rotation.',fix:'Rotation-to-finish drill, step-through drill, continuous finish swings.',physical:'Medicine-ball scoop toss, cable rotations, Pallof press.'},
+  {name:'Over-the-top delivery',signs:'Club exits steep and left, pulls, pull fades.',why:'The steep delivery naturally sends the club upward rather than around.',screen:'Delivery plane assessment.',fix:'Transition drills, shallowing drills, pressure shift.',physical:'None specific.'},
+  {name:'Open clubface',signs:'Weak fades, face open after impact, lead wrist extends.',why:'The golfer "throws" the club to square the face.',screen:'Grip and wrist mobility.',fix:'Motorcycle drill, grip assessment, punch shots.',physical:'None specific.'},
+  {name:'Poor lead arm structure',signs:'Lead arm disconnects, radius shortens, club loses arc.',why:'Poor extension changes the exit pattern.',screen:'Shoulder flexion, horizontal adduction.',fix:'One-arm swings, extension rehearsals, slow-motion finish.',physical:'None specific.'},
+  {name:'Poor balance',signs:'Finish unstable, weight remains back, feet moving.',why:'The golfer cannot continue rotating around a stable lead side.',screen:'Single-leg balance, step-down, Y-balance.',fix:'Finish holds, feet together drill, walk-through swings.',physical:'Single-leg RDL, farmer carries, lateral bounds.'}
+ ],
+ ballFlight:[['Weak fade','Open face + flyaway'],['Pull','OTT + flyaway'],['Heel strike','Early extension'],['Thin','Standing up'],['Loss of speed','Poor extension'],['Inconsistent strike','Stall through impact']],
+ decisionTree:[['Chicken wing?','Yes → Restore extension'],['Early extension?','Yes → Maintain hip depth'],['Body stall?','Yes → Improve rotation'],['OTT delivery?','Yes → Improve transition'],['Clubface open?','Yes → Grip & wrist mechanics'],['Lead arm structure?','Poor → Extension drills'],['Balance stable?','No → Stability training']],
+ chain:'Poor Pivot / Pressure Shift → Club Stuck or OTT → Early Extension → Chest Stall → Chicken Wing → Post-Impact Club Flyaway',
+ notes:'Better renamed "Disconnected Exit Pattern" — the follow-through is a diagnostic window, not something to manipulate directly. Classify exits as: Connected (green, club wraps around lead shoulder, functional — leave it alone), Neutral (amber, exits slightly upward but stays synchronized, monitor only if strike/flight suffers), Disconnected/Flyaway (red, diagnose the upstream cause rather than the exit itself).'},
+
+{id:'fat-thin',name:'Fat / thin contact (full swing)',stage:'outcomes',
+ classification:'Performance outcome, not a swing fault in itself — this is where every upstream fault tree converges',
+ keyQuestion:"Why is the golfer's low point inconsistent?",
+ confirm:'Observe over 10-20 shots: fat shots, thin shots, or a mixture of both, plus divot position, strike location, and club used. Identify which pattern exists before continuing.',
+ branches:[
+  {name:'Poor low point control',tag:'Most common',signs:'Divots behind the ball, fat then thin, strike varies every swing.',why:'The golfer cannot consistently control where the club reaches the bottom of its arc.',screen:'Divot line drill, tee after ball drill, pressure shift assessment.',fix:'Divot after the ball, punch shots, low-point ladder drill.',physical:'Usually sequencing rather than mobility.'},
+  {name:'Hanging back',tag:'Most common',signs:'Trail foot loaded, chest behind, fat irons, thin woods.',why:'Low point remains behind the golf ball.',screen:'Pressure shift, lead leg stability, step drill.',fix:'Walk-through drill, step drill, finish left.',physical:'Split squats, lateral bounds, single-leg RDL.'},
+  {name:'Early extension',signs:'Pelvis toward ball, handle raises, thin shots, heel strikes.',why:'Standing up changes the radius.',screen:'Hip IR, hip hinge, single-leg squat.',fix:'Chair drill, wall drill, glutes back.',physical:'None specified — see Early Extension entry.'},
+  {name:'Reverse pivot',signs:'Weight left going back, weight right coming down.',why:'Bottom of arc constantly behind the ball.',screen:'Pressure shift.',fix:'Step drill, trail heel load.',physical:'None specified — see Reverse Pivot entry.'},
+  {name:'Club stuck at P6',signs:'Pushes, blocks, hooks, fat.',why:'Recovery timing changes every swing.',screen:'None specified — see Club Left Behind entry.',fix:'Pump drill, split hands, wall drill.',physical:'None specified.'},
+  {name:'Reverse spine angle',signs:'Steep, fat, pulls.',why:'Poor pivot destroys pressure shift.',screen:'None specified — see Reverse Spine Angle entry.',fix:'Centered turn, chair drill.',physical:'None specified.'},
+  {name:'Over-the-top',signs:'Deep divots, pulls, pull fades.',why:'Steep angle of attack.',screen:'None specified — see Over the Top entry.',fix:'Improve transition, pressure drills.',physical:'None specified.'},
+  {name:'Poor setup distance',signs:'Too close, too far, arms cramped.',why:'Arc changes before the swing starts.',screen:'Setup assessment.',fix:'Setup correction at address.',physical:'None required.'},
+  {name:'Poor balance',signs:'Finish unstable, moving feet, variable strike.',why:'Constant movement changes low point.',screen:'Balance assessment.',fix:'Balance-focused drill work.',physical:'None specified.'},
+  {name:'Fatigue',signs:'Good early, poor late.',why:'Posture and sequencing deteriorate.',screen:'None specific.',fix:'Session pacing.',physical:'Core endurance, lead leg endurance.'}
+ ],
+ ballFlight:[['Fat only','Hanging back, reverse pivot'],['Thin only','Early extension, standing up'],['Fat then thin','Poor low-point control'],['Heel + thin','Early extension'],['Toe + fat','Loss of posture'],['Random','Sequencing or balance']],
+ decisionTree:[['Low point inconsistent?','Yes → Low-point drills'],['Hanging back?','Yes → Pressure shift'],['Early extension?','Yes → Restore posture'],['Reverse pivot?','Yes → Pivot drills'],['Club stuck?','Yes → Sequencing'],['OTT?','Yes → Transition'],['Setup?','Poor → Address'],['Balance?','Poor → Stability'],['Fatigue?','Yes → Conditioning']],
+ chain:'SETUP (S/C Posture, Grip, Ball Position) → BACKSWING (Poor Hip/Thoracic Rotation, Flat Shoulder Plane, Flying Elbow, Reverse Pivot, Reverse Spine Angle, Sway) → TRANSITION (Poor Pressure Shift, Poor Sequencing) → DELIVERY (Club Stuck, Over The Top, Slide) → IMPACT (Early Extension, Loss of Posture, Casting, Chicken Wing, Hanging Back) → OUTCOMES (Fat, Thin, Heel, Toe, Push, Pull, Slice, Hook, Distance Loss)',
+ notes:"Golfers don't actually care about early extension, reverse spine angle or an over-the-top move — they care about fat shots, thin shots, toe strikes, heel strikes, and distance control. Everything else in this tool explains why those outcomes occur. This is the master convergence point of the entire fault tree system."}
+
+];
+
+const state = {view:'list', stage:'setup', currentFaultId:null};
+
+function renderStageNav(){
+  const nav = document.getElementById('stage-nav');
+  nav.innerHTML = STAGES.map(s =>
+    '<button class="stage-tab'+(s.id===state.stage?' active':'')+'" onclick="switchStage(\''+s.id+'\')">'+s.label+'</button>'
+  ).join('');
+}
+
+function switchStage(stageId){
+  state.stage = stageId;
+  state.view = 'list';
+  renderStageNav();
+  showList();
+}
+
+function showList(){
+  document.getElementById('view-list').classList.add('active');
+  document.getElementById('view-detail').classList.remove('active');
+  document.getElementById('stage-nav').classList.remove('hidden');
+  document.getElementById('main').classList.remove('no-stage');
+  document.getElementById('back-btn').classList.remove('visible');
+  document.getElementById('header-title').textContent = 'JDP Swing Sequence Map';
+
+  const stage = STAGES.find(s => s.id === state.stage);
+  document.getElementById('stage-title').textContent = stage.label;
+  document.getElementById('stage-desc').textContent = stage.desc;
+
+  const faults = FAULTS.filter(f => f.stage === state.stage);
+  const container = document.getElementById('fault-list-container');
+
+  if(!faults.length){
+    container.innerHTML = '<div class="placeholder"><div style="font-size:15px;font-weight:700">No entries in this stage yet</div></div>';
+    return;
+  }
+
+  container.innerHTML = faults.map(f =>
+    '<div class="fault-card" onclick="openFault(\''+f.id+'\')">' +
+      '<div style="flex:1">' +
+        '<div class="fault-card-name">'+f.name+'</div>' +
+        '<div class="fault-card-sub">'+f.classification+'</div>' +
+      '</div>' +
+      '<span class="fault-card-arrow">&#8250;</span>' +
+    '</div>'
+  ).join('');
+}
+
+function openFault(id){
+  const f = FAULTS.find(x => x.id === id);
+  if(!f) return;
+  state.view = 'detail';
+  state.currentFaultId = id;
+
+  document.getElementById('view-list').classList.remove('active');
+  document.getElementById('view-detail').classList.add('active');
+  document.getElementById('stage-nav').classList.add('hidden');
+  document.getElementById('main').classList.add('no-stage');
+  document.getElementById('back-btn').classList.add('visible');
+  document.getElementById('header-title').textContent = f.name;
+
+  let html = '';
+
+  html += '<div class="section">' +
+    '<span class="badge">'+f.classification+'</span>' +
+    '<div style="height:12px"></div>' +
+    '<div class="section-label">Key question</div>' +
+    '<div class="key-question">'+f.keyQuestion+'</div>' +
+  '</div>';
+
+  html += '<div class="section">' +
+    '<div class="section-label">Confirm</div>' +
+    '<div class="confirm-text">'+f.confirm+'</div>' +
+  '</div>';
+
+  html += '<div class="section"><div class="section-label">Branches</div>';
+  f.branches.forEach((b,i) => {
+    html += '<div class="branch-card">' +
+      '<div class="branch-head"><span class="branch-name">'+(i+1)+'. '+b.name+'</span>' +
+      (b.tag ? '<span class="branch-tag">'+b.tag+'</span>' : '') + '</div>' +
+      '<div class="branch-row"><b>Signs</b> — '+b.signs+'</div>' +
+      '<div class="branch-row"><b>Why</b> — '+b.why+'</div>' +
+      '<div class="branch-row"><b>Screen</b> — '+b.screen+'</div>' +
+      '<div class="branch-row"><b>Swing fixes</b> — '+b.fix+'</div>' +
+      '<div class="branch-row"><b>Physical training</b> — '+b.physical+'</div>' +
+    '</div>';
+  });
+  html += '</div>';
+
+  html += '<div class="section"><div class="section-label">Ball flight clues</div>' +
+    '<table class="bf"><tr><th>Ball flight</th><th>Likely cause</th></tr>' +
+    f.ballFlight.map(r => '<tr><td>'+r[0]+'</td><td>'+r[1]+'</td></tr>').join('') +
+    '</table></div>';
+
+  html += '<div class="section"><div class="section-label">Decision tree</div>' +
+    f.decisionTree.map(r => '<div class="tree-row">'+r[0]+' <b>'+r[1]+'</b></div>').join('') +
+  '</div>';
+
+  html += '<div class="section"><div class="section-label">Compensation chain</div>' +
+    '<div class="chain-box">'+f.chain+'</div></div>';
+
+  if(f.notes){
+    html += '<div class="section"><div class="section-label">Coaching notes</div>' +
+      '<div class="notes-box">'+f.notes+'</div></div>';
+  }
+
+  document.getElementById('view-detail').innerHTML = html;
+  window.scrollTo(0,0);
+}
+
+function goBack(){
+  showList();
+}
+
+renderStageNav();
+showList();
+</script>
+</body>
+</html>
